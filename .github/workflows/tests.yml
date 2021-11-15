@@ -9,6 +9,7 @@ on:
 jobs:
   run-tests:
     runs-on: ubuntu-latest
+    container: tensorflow/tensorflow
     steps:
       - uses: actions/checkout@v2
       - run: |
