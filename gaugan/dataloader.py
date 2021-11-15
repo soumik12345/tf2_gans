@@ -10,7 +10,7 @@ class PairedTranslationDataLoader:
         self.image_size = image_size
         self.n_classes = n_classes
 
-    def random_crop(self, image, segmentation_map, labels):
+    def _random_crop(self, image, segmentation_map, labels):
         image_shape = tf.shape(image)[:2]
         width = tf.random.uniform(
             shape=(), maxval=image_shape[1] - self.image_size + 1, dtype=tf.int32
@@ -19,7 +19,7 @@ class PairedTranslationDataLoader:
             shape=(), maxval=image_shape[0] - self.image_size + 1, dtype=tf.int32
         )
         image_cropped = image[
-            width : height + self.image_size, width : width + self.image_size
+            height : height + self.image_size, width : width + self.image_size
         ]
         segmentation_map_cropped = segmentation_map[
             height : height + self.image_size, width : width + self.image_size
@@ -60,6 +60,7 @@ class PairedTranslationDataLoader:
             (image_files, segmentation_map_files, label_files)
         )
         dataset = dataset.map(self._parse_fn, num_parallel_calls=tf.data.AUTOTUNE)
+        dataset = dataset.map(self._random_crop, num_parallel_calls=tf.data.AUTOTUNE)
         return dataset
 
     def get_datasets(self, dataset_path: str):
