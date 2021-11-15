@@ -55,23 +55,28 @@ class PairedTranslationDataLoader:
             [tf.float32, tf.float32, tf.float32],
         )
 
-    def _get_batched_dataset(self, image_files, segmentation_map_files, label_files):
+    def _get_batched_dataset(self, image_files, batch_size):
+        segmentation_map_files = [
+            image_file.replace("images", "segmentation_map").replace("jpg", "png")
+            for image_file in image_files
+        ]
+        label_files = [
+            image_file.replace("images", "segmentation_labels").replace("jpg", "bmp")
+            for image_file in image_files
+        ]
         dataset = tf.data.Dataset.from_tensor_slices(
             (image_files, segmentation_map_files, label_files)
         )
         dataset = dataset.map(self._parse_fn, num_parallel_calls=tf.data.AUTOTUNE)
         dataset = dataset.map(self._random_crop, num_parallel_calls=tf.data.AUTOTUNE)
+        dataset = dataset.batch(batch_size, drop_remainder=True)
         return dataset
 
-    def get_datasets(self, dataset_path: str):
-        image_files = sorted(glob(os.path.join(dataset_path, "images", "*")))
-        segmentation_map_files = sorted(
-            glob(os.path.join(dataset_path, "segmentation_map", "*"))
-        )
-        label_files = sorted(
-            glob(os.path.join(dataset_path, "segmentation_labels", "*"))
-        )
-        train_dataset = self._get_batched_dataset(
-            image_files, segmentation_map_files, label_files
-        )
-        return train_dataset
+    def get_datasets(self, dataset_path: str, val_split: float = 0.2, batch_size: int = 16):
+        image_files = glob(os.path.join(dataset_path, "images", "*"))
+        split_index = int(len(image_files) * (1 - val_split))
+        train_image_files = image_files[:split_index]
+        val_image_files = image_files[split_index:]
+        train_dataset = self._get_batched_dataset(train_image_files, batch_size)
+        val_dataset = self._get_batched_dataset(val_image_files, batch_size)
+        return train_dataset, val_dataset
