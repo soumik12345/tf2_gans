@@ -15,4 +15,5 @@ jobs:
           pip install -U pip
           pip install -r requirements.txt
           gdown https://drive.google.com/uc?id=1zs2RPZkLeB5QDRVQtpqUtMwepR_Qfufp
+          unzip -q facades.zip
           pytest tests.py -s
