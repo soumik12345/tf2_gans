@@ -17,7 +17,7 @@ class ResidualBlock(layers.Layer):
         self.conv_1 = layers.Conv2D(self.n_filters, 3, padding="same")
         self.conv_2 = layers.Conv2D(self.n_filters, 3, padding="same")
         self.learned_skip = False
-        if self.filters != input_filter:
+        if self.n_filters != input_filter:
             self.learned_skip = True
             self.spade_3 = SpatialAdaptiveNormalization(input_filter)
             self.conv_3 = layers.Conv2D(self.n_filters, 3, padding="same")

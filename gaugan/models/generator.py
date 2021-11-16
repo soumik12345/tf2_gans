@@ -9,11 +9,11 @@ def build_encoder(
     image_size: int = 256, encoding_dimension: int = 64, latent_dimension: int = 256
 ):
     image = keras.Input(shape=[image_size, image_size, 3])
-    x = downsample_block(encoding_dimension, 3, norm=False)(image)
-    x = downsample_block(2 * encoding_dimension, 3)(x)
-    x = downsample_block(4 * encoding_dimension, 3)(x)
-    x = downsample_block(8 * encoding_dimension, 3)(x)
-    x = downsample_block(8 * encoding_dimension, 3)(x)
+    x = downsample_block(image, encoding_dimension, 3, apply_norm=False)
+    x = downsample_block(x, 2 * encoding_dimension, 3)
+    x = downsample_block(x, 4 * encoding_dimension, 3)
+    x = downsample_block(x, 8 * encoding_dimension, 3)
+    x = downsample_block(x, 8 * encoding_dimension, 3)
     x = layers.Flatten()(x)
     mean = layers.Dense(latent_dimension, name="mean")(x)
     logvar = layers.Dense(latent_dimension, name="logvar")(x)
