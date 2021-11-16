@@ -72,7 +72,9 @@ class PairedTranslationDataLoader:
         dataset = dataset.batch(batch_size, drop_remainder=True)
         return dataset
 
-    def get_datasets(self, dataset_path: str, val_split: float = 0.2, batch_size: int = 16):
+    def get_datasets(
+        self, dataset_path: str, val_split: float = 0.2, batch_size: int = 16
+    ):
         image_files = glob(os.path.join(dataset_path, "images", "*"))
         split_index = int(len(image_files) * (1 - val_split))
         train_image_files = image_files[:split_index]
