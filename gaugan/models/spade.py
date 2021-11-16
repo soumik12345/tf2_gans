@@ -21,5 +21,4 @@ class SpatialAdaptiveNormalization(layers.Layer):
         mean, var = tf.nn.moments(input_tensor, axes=(0, 1, 2), keepdims=True)
         std = tf.sqrt(var + self.epsilon)
         normalized = (input_tensor - mean) / std
-        output = gamma * normalized + beta
-        return output
+        return gamma * normalized + beta
