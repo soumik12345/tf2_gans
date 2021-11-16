@@ -1,5 +1,6 @@
 import tensorflow as tf
-from tensorflow.keras import layers
+import tensorflow_addons as tfa
+from tensorflow.keras import layers, initializers
 
 from .spade import SpatialAdaptiveNormalization
 
@@ -46,3 +47,26 @@ class GaussianSampling(layers.Layer):
             shape=(self.batch_size, self.latent_dimension), mean=0.0, stddev=1.0
         )
         return means + tf.exp(0.5 * logvar) * epsilon
+
+
+def downsample_block(
+    input_tensor,
+    channels,
+    kernels,
+    strides=2,
+    apply_norm=True,
+    apply_activation=True,
+    apply_dropout=False,
+):
+    x = layers.Conv2D(
+        channels,
+        kernels,
+        strides=strides,
+        padding="same",
+        use_bias=False,
+        kernel_initializer=initializers.GlorotNormal(),
+    )(input_tensor)
+    x = tfa.layers.InstanceNormalization()(x) if apply_norm else x
+    x = layers.LeakyReLU(0.2)(x) if apply_activation else x
+    x = layers.Dropout(0.5)(x) if apply_dropout else x
+    return x
