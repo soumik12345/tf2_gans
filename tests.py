@@ -40,3 +40,17 @@ class ModelTester(unittest.TestCase):
             ]
         )
         assert output_image.shape == (1, 256, 256, 3)
+
+    def test_discriminator(self):
+        discriminator = models.build_discriminator()
+        x1, x2, x3, x4, x5 = discriminator(
+            [
+                tf.zeros((1, 256, 256, 3), dtype=tf.float32),
+                tf.zeros((1, 256, 256, 3), dtype=tf.float32),
+            ]
+        )
+        assert x1.shape == (1, 128, 128, 64)
+        assert x2.shape == (1, 64, 64, 128)
+        assert x3.shape == (1, 32, 32, 256)
+        assert x4.shape == (1, 16, 16, 512)
+        assert x5.shape == (1, 13, 13, 1)
