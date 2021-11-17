@@ -34,6 +34,6 @@ class ContentLoss(losses.Loss):
         loss = 0.0
         for i in range(len(self.encoder_layers)):
             loss += self.encoder_layer_weights[i] * self.mean_absolute_error(
-                y_true_features, y_pred_features
+                y_true_features[i], y_pred_features[i]
             )
         return loss
