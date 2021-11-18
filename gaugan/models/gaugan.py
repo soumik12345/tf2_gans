@@ -130,7 +130,7 @@ class GauGAN(Model):
         save_traces=True,
     ):
         self.generator.save(
-            filepath + "_generator",
+            filepath + "_generator.h5",
             overwrite=overwrite,
             include_optimizer=include_optimizer,
             save_format=save_format,
@@ -139,7 +139,7 @@ class GauGAN(Model):
             save_traces=save_traces,
         )
         self.discriminator.save(
-            filepath + "_generator",
+            filepath + "_discriminator.h5",
             overwrite=overwrite,
             include_optimizer=include_optimizer,
             save_format=save_format,
@@ -150,8 +150,8 @@ class GauGAN(Model):
 
     def save_weights(self, filepath, overwrite=True, save_format=None, options=None):
         self.generator.save_weights(
-            filepath, overwrite=overwrite, save_format=save_format, options=options
+            filepath + "_generator.h5", overwrite=overwrite, save_format=save_format, options=options
         )
         self.discriminator.save_weights(
-            filepath, overwrite=overwrite, save_format=save_format, options=options
+            filepath + "_discriminator.h5", overwrite=overwrite, save_format=save_format, options=options
         )
