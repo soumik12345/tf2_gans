@@ -70,7 +70,7 @@ class GauGAN(Model):
         self.discriminator_optimizer.apply_gradients(
             zip(gradients, self.discriminator.trainable_variables)
         )
-        return loss_fake, loss_real, total_loss
+        return total_loss
 
     def train_generator(
         self, latent, real_images_A, real_images_B, labels_A, mean, logvar
@@ -100,7 +100,7 @@ class GauGAN(Model):
         real_images_A, real_images_B, labels_A = data
         mean, logvar = self.encoder(real_images_B)
         latent = self.sampler([mean, logvar])
-        loss_fake, loss_real, total_discriminator_loss = self.train_discriminator(
+        total_discriminator_loss = self.train_discriminator(
             latent, real_images_A, real_images_B, labels_A
         )
         (
@@ -115,6 +115,7 @@ class GauGAN(Model):
         return {
             "total_discriminator_loss": total_discriminator_loss,
             "total_discriminator_loss": total_discriminator_loss,
+            "generator_loss": g_loss,
             "kl_loss": kl_loss,
             "content_loss": content_loss,
             "feature_loss": feature_loss,
