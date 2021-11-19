@@ -5,13 +5,7 @@ from tensorflow.keras import optimizers, losses, models, Model
 from .generator import build_encoder, build_generator
 from .discriminator import build_discriminator
 from .sampling import GaussianSampling
-from ..loss_fns import (
-    ContentLoss,
-    DiscriminatorHingeLoss,
-    FeatureMatchingLoss,
-    generator_loss,
-    k_l_divergence,
-)
+from ..loss_fns import ContentLoss, generator_loss, k_l_divergence
 
 
 class GauGAN(Model):
