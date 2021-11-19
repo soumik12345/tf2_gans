@@ -3,6 +3,8 @@ from tensorflow.keras import layers
 
 
 class SpatialAdaptiveNormalization(layers.Layer):
+    """Reference: https://arxiv.org/abs/1903.07291"""
+
     def __init__(self, n_filters: int, epsilon: float = 1e-5, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.epsilon = epsilon
