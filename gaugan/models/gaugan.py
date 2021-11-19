@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import optimizers, Model
+from tensorflow.keras import optimizers, losses, models, Model
 
 from .generator import build_encoder, build_generator
 from .discriminator import build_discriminator
@@ -33,8 +33,8 @@ class GauGAN(Model):
         self.encoder = build_encoder(image_size, encoding_dimension, latent_dimension)
         self.generator = build_generator(image_size, latent_dimension, n_classes)
         self.discriminator = build_discriminator(image_size, downsample_factor)
-        self.discriminator.trainable = False
         self.sampler = GaussianSampling(batch_size, latent_dimension)
+        # Default value of the loss coefficients have been taken from https://arxiv.org/pdf/1711.11585.pdf
         self.feature_loss_weight = feature_loss_weight
         self.content_loss_weight = content_loss_weight
         self.kl_divergence_weight = kl_divergence_weight
@@ -51,17 +51,20 @@ class GauGAN(Model):
         self.generator_optimizer = optimizers.Adam(learning_rate=1e-4, beta_1=0.0)
         self.discriminator_optimizer = optimizers.Adam(learning_rate=4e-4, beta_1=0.0)
         self.content_loss = ContentLoss()
-        self.discriminator_hinge_loss = DiscriminatorHingeLoss()
-        self.feature_matching_loss = FeatureMatchingLoss()
+        self.discriminator_hinge_loss = losses.Hinge()
+        self.feature_matching_loss = losses.MeanAbsoluteError()
 
     def train_discriminator(self, latent, real_images_A, real_images_B, labels_A):
-        fake_images_B = self.generator.predict([latent, labels_A])
-        self.discriminator.trainable = True
+        fake_images_B = self.generator([latent, labels_A])
         with tf.GradientTape() as d_tape:
-            pred_fake = self.discriminator([real_images_A, fake_images_B])[-1]
-            pred_real = self.discriminator([real_images_A, real_images_B])[-1]
-            loss_fake = self.discriminator_hinge_loss(pred_fake, False)
-            loss_real = self.discriminator_hinge_loss(pred_real, True)
+            pred_fake = self.discriminator(
+                [real_images_A, fake_images_B], training=True
+            )[-1]
+            pred_real = self.discriminator(
+                [real_images_A, real_images_B], training=True
+            )[-1]
+            loss_fake = self.discriminator_hinge_loss(pred_fake, -1.0)
+            loss_real = self.discriminator_hinge_loss(pred_real, 1.0)
             total_loss = 0.5 * (loss_fake + loss_real)
         gradients = d_tape.gradient(total_loss, self.discriminator.trainable_variables)
         self.discriminator_optimizer.apply_gradients(
@@ -75,7 +78,7 @@ class GauGAN(Model):
         with tf.GradientTape() as g_tape:
             real_d_output = self.discriminator([real_images_A, real_images_B])
             fake_d_output, fake_image = self.generator(
-                [latent, labels_A, real_images_A]
+                [latent, labels_A, real_images_A], training=True
             )
             pred = fake_d_output[-1]
             g_loss = generator_loss(pred)
@@ -83,11 +86,10 @@ class GauGAN(Model):
             content_loss = self.content_loss_weight * self.content_loss(
                 real_images_B, fake_image
             )
-            feature_loss = self.feature_loss_weight * self.feature_matching_loss(
-                real_d_output, fake_d_output
+            feature_loss = self.feature_loss_weight * tf.reduce_mean(
+                self.feature_matching_loss(real_d_output, fake_d_output)
             )
             total_loss = g_loss + kl_loss + content_loss + feature_loss
-        self.discriminator.trainable = False
         gradients = g_tape.gradient(total_loss, self.generator.trainable_variables)
         self.generator_optimizer.apply_gradients(
             zip(gradients, self.generator.trainable_variables)
@@ -130,7 +132,7 @@ class GauGAN(Model):
         save_traces=True,
     ):
         self.generator.save(
-            filepath + "_generator.h5",
+            filepath + "_generator",
             overwrite=overwrite,
             include_optimizer=include_optimizer,
             save_format=save_format,
@@ -139,7 +141,7 @@ class GauGAN(Model):
             save_traces=save_traces,
         )
         self.discriminator.save(
-            filepath + "_discriminator.h5",
+            filepath + "_discriminator",
             overwrite=overwrite,
             include_optimizer=include_optimizer,
             save_format=save_format,
@@ -150,8 +152,56 @@ class GauGAN(Model):
 
     def save_weights(self, filepath, overwrite=True, save_format=None, options=None):
         self.generator.save_weights(
-            filepath + "_generator.h5", overwrite=overwrite, save_format=save_format, options=options
+            filepath + "_generator.h5",
+            overwrite=overwrite,
+            save_format=save_format,
+            options=options,
         )
         self.discriminator.save_weights(
-            filepath + "_discriminator.h5", overwrite=overwrite, save_format=save_format, options=options
+            filepath + "_discriminator.h5",
+            overwrite=overwrite,
+            save_format=save_format,
+            options=options,
+        )
+
+    def load_weights(
+        self,
+        generator_filepath,
+        discriminator_filepath,
+        by_name=False,
+        skip_mismatch=False,
+        options=None,
+    ):
+        self.generator.load_weights(
+            generator_filepath,
+            by_name=by_name,
+            skip_mismatch=skip_mismatch,
+            options=options,
+        )
+        self.discriminator.load_weights(
+            discriminator_filepath,
+            by_name=by_name,
+            skip_mismatch=skip_mismatch,
+            options=options,
+        )
+
+    def load(
+        self,
+        generator_filepath,
+        discriminator_filepath,
+        custom_objects=None,
+        compile=True,
+        options=None,
+    ):
+        self.generator = models.load_model(
+            filepath=generator_filepath,
+            custom_objects=custom_objects,
+            compile=compile,
+            options=options,
+        )
+        self.discriminator = models.load_model(
+            filepath=generator_filepath,
+            custom_objects=custom_objects,
+            compile=compile,
+            options=options,
         )

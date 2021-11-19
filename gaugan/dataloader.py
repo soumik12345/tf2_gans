@@ -5,6 +5,9 @@ from glob import glob
 import tensorflow as tf
 
 
+_AUTOTUNE = tf.data.AUTOTUNE
+
+
 class PairedTranslationDataLoader:
     def __init__(self, image_size: int = 256, n_classes: int = 12) -> None:
         self.image_size = image_size
@@ -67,8 +70,8 @@ class PairedTranslationDataLoader:
         dataset = tf.data.Dataset.from_tensor_slices(
             (image_files, segmentation_map_files, label_files)
         )
-        dataset = dataset.map(self._parse_fn, num_parallel_calls=tf.data.AUTOTUNE)
-        dataset = dataset.map(self._random_crop, num_parallel_calls=tf.data.AUTOTUNE)
+        dataset = dataset.map(self._parse_fn, num_parallel_calls=_AUTOTUNE)
+        dataset = dataset.map(self._random_crop, num_parallel_calls=_AUTOTUNE)
         dataset = dataset.batch(batch_size, drop_remainder=True)
         return dataset
 

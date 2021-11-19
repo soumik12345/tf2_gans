@@ -31,9 +31,12 @@ class ContentLoss(losses.Loss):
         y_pred = applications.vgg19.preprocess_input(y_pred)
         y_true_features = self.feature_extraction_model(y_true)
         y_pred_features = self.feature_extraction_model(y_pred)
-        loss = 0.0
-        for i in range(len(self.encoder_layers)):
-            loss += self.encoder_layer_weights[i] * self.mean_absolute_error(
-                y_true_features[i], y_pred_features[i]
-            )
+        # loss = 0.0
+        # for i in range(len(self.encoder_layers)):
+        #     loss += self.encoder_layer_weights[i] * self.mean_absolute_error(
+        #         y_true_features[i], y_pred_features[i]
+        #     )
+        loss = self.encoder_layer_weights * self.mean_absolute_error(
+            y_true_features, y_pred_features
+        )
         return loss
