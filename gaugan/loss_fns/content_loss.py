@@ -6,6 +6,9 @@ class ContentLoss(losses.Loss):
     def __init__(self, reduction=..., name=None):
         super().__init__(reduction=reduction, name=name)
         self.feature_extraction_model = self._build_vgg19_model()
+        # The encoder layers weights are basically an increasing geometric progression (1 / 2 ^ n).
+        # Earlier features carry less weight and later layers carry more weight.
+        # Reference: https://arxiv.org/pdf/1711.11585.pdf
         self.encoder_layer_weights = [1.0 / 32, 1.0 / 16, 1.0 / 8, 1.0 / 4, 1.0]
         self.encoder_layers = [
             "block1_conv1",

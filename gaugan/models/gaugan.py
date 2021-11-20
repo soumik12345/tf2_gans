@@ -57,8 +57,8 @@ class GauGAN(Model):
             pred_real = self.discriminator(
                 [real_images_A, real_images_B], training=True
             )[-1]
-            loss_fake = self.discriminator_hinge_loss(pred_fake, -1.0)
-            loss_real = self.discriminator_hinge_loss(pred_real, 1.0)
+            loss_fake = self.discriminator_hinge_loss(pred_fake, -1.0) # negative -> fake labels
+            loss_real = self.discriminator_hinge_loss(pred_real, 1.0) # positive -> real labels
             total_loss = 0.5 * (loss_fake + loss_real)
         gradients = d_tape.gradient(total_loss, self.discriminator.trainable_variables)
         self.discriminator_optimizer.apply_gradients(
@@ -71,14 +71,13 @@ class GauGAN(Model):
     ):
         with tf.GradientTape() as g_tape:
             real_d_output = self.discriminator([real_images_A, real_images_B])
-            fake_d_output, fake_image = self.generator(
-                [latent, labels_A, real_images_A], training=True
-            )
+            fake_images = self.generator([latent, labels_A])
+            fake_d_output = self.discriminator([real_images_A, fake_images])
             pred = fake_d_output[-1]
             g_loss = generator_loss(pred)
             kl_loss = self.kl_divergence_weight * k_l_divergence(mean, logvar)
             content_loss = self.content_loss_weight * self.content_loss(
-                real_images_B, fake_image
+                real_images_B, fake_images
             )
             feature_loss = self.feature_loss_weight * tf.reduce_mean(
                 self.feature_matching_loss(real_d_output, fake_d_output)
