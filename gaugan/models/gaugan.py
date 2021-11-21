@@ -5,7 +5,7 @@ from tensorflow.keras import optimizers, losses, models, Model
 from .generator import build_encoder, build_generator
 from .discriminator import build_discriminator
 from .sampling import GaussianSampling
-from ..loss_fns import ContentLoss, generator_loss, k_l_divergence
+from ..loss_fns import ContentLoss, generator_loss, kl_divergence_loss
 
 
 class GauGAN(Model):
@@ -28,7 +28,8 @@ class GauGAN(Model):
         self.generator = build_generator(image_size, latent_dimension, n_classes)
         self.discriminator = build_discriminator(image_size, downsample_factor)
         self.sampler = GaussianSampling(batch_size, latent_dimension)
-        # Default value of the loss coefficients have been taken from https://arxiv.org/pdf/1711.11585.pdf
+        # Default value of the loss coefficients have been taken
+        # from https://arxiv.org/pdf/1711.11585.pdf
         self.feature_loss_weight = feature_loss_weight
         self.content_loss_weight = content_loss_weight
         self.kl_divergence_weight = kl_divergence_weight
@@ -40,65 +41,114 @@ class GauGAN(Model):
         self.generator.summary(line_length, positions, print_fn)
         self.discriminator.summary(line_length, positions, print_fn)
 
-    def compile(self, *args, **kwargs):
+    def compile(
+        self,
+        generator_lr: float = 1e-4,
+        discriminator_lr: float = 4e-4,
+        *args,
+        **kwargs
+    ):
         super().compile(*args, **kwargs)
-        self.generator_optimizer = optimizers.Adam(learning_rate=1e-4, beta_1=0.0)
-        self.discriminator_optimizer = optimizers.Adam(learning_rate=4e-4, beta_1=0.0)
+        self.generator_optimizer = optimizers.Adam(
+            learning_rate=generator_lr, beta_1=0.0
+        )
+        self.discriminator_optimizer = optimizers.Adam(
+            learning_rate=discriminator_lr, beta_1=0.0
+        )
         self.content_loss = ContentLoss()
         self.discriminator_hinge_loss = losses.Hinge()
-        self.feature_matching_loss = losses.MeanAbsoluteError()
+        self.mean_absolute_error = losses.MeanAbsoluteError()
 
-    def train_discriminator(self, latent, real_images_A, real_images_B, labels_A):
+    def feature_matching_loss(self, real_features, fake_features):
+        loss = 0
+        for i in range(len(real_features) - 1):
+            loss += self.mean_absolute_error(real_features[i], fake_features[i])
+        return loss
+
+    def _compute_discriminator_loss(self, real_images_A, real_images_B, fake_images_B):
+        fake_prediction = self.discriminator([real_images_A, fake_images_B])[-1]
+        real_prediction = self.discriminator([real_images_A, real_images_B])[-1]
+        fake_loss = self.discriminator_hinge_loss(-1.0, fake_prediction)
+        real_loss = self.discriminator_hinge_loss(1.0, real_prediction)
+        total_discriminator_loss = 0.5 * (fake_loss + real_loss)
+        return total_discriminator_loss
+
+    def _compute_generator_losss(
+        self, latent, real_images_A, real_images_B, labels_A, mean, variance
+    ):
+        real_d_output = self.discriminator([real_images_A, real_images_B])
+        fake_images = self.generator([latent, labels_A])
+        fake_d_output = self.discriminator([real_images_A, fake_images])
+        prediction = fake_d_output[-1]
+        g_loss = generator_loss(prediction)
+        kl_loss = kl_divergence_loss(mean, variance)
+        content_loss = self.content_loss(real_images_B, fake_images)
+        feature_loss = self.feature_matching_loss(real_d_output, fake_d_output)
+        total_generator_loss = (
+            g_loss
+            + self.kl_divergence_weight * kl_loss
+            + self.content_loss_weight * content_loss
+            + self.feature_loss_weight * feature_loss
+        )
+        return g_loss, kl_loss, content_loss, feature_loss, total_generator_loss
+
+    def _discriminator_train_step(self, latent, real_images_A, real_images_B, labels_A):
         fake_images_B = self.generator([latent, labels_A])
         with tf.GradientTape() as d_tape:
-            pred_fake = self.discriminator(
-                [real_images_A, fake_images_B], training=True
-            )[-1]
-            pred_real = self.discriminator(
-                [real_images_A, real_images_B], training=True
-            )[-1]
-            loss_fake = self.discriminator_hinge_loss(
-                pred_fake, -1.0
-            )  # negative -> fake labels
-            loss_real = self.discriminator_hinge_loss(
-                pred_real, 1.0
-            )  # positive -> real labels
-            total_loss = 0.5 * (loss_fake + loss_real)
+            total_loss = self._compute_discriminator_loss(
+                real_images_A, real_images_B, fake_images_B
+            )
         gradients = d_tape.gradient(total_loss, self.discriminator.trainable_variables)
         self.discriminator_optimizer.apply_gradients(
             zip(gradients, self.discriminator.trainable_variables)
         )
         return total_loss
 
-    def train_generator(
-        self, latent, real_images_A, real_images_B, labels_A, mean, logvar
+    def _generator_train_step(
+        self, latent, real_images_A, real_images_B, labels_A, mean, variance
     ):
         with tf.GradientTape() as g_tape:
-            real_d_output = self.discriminator([real_images_A, real_images_B])
-            fake_images = self.generator([latent, labels_A])
-            fake_d_output = self.discriminator([real_images_A, fake_images])
-            pred = fake_d_output[-1]
-            g_loss = generator_loss(pred)
-            kl_loss = self.kl_divergence_weight * k_l_divergence(mean, logvar)
-            content_loss = self.content_loss_weight * self.content_loss(
-                real_images_B, fake_images
+            (
+                g_loss,
+                kl_loss,
+                content_loss,
+                feature_loss,
+                total_generator_loss,
+            ) = self._compute_generator_losss(
+                latent, real_images_A, real_images_B, labels_A, mean, variance
             )
-            feature_loss = self.feature_loss_weight * tf.reduce_mean(
-                self.feature_matching_loss(real_d_output, fake_d_output)
-            )
-            total_loss = g_loss + kl_loss + content_loss + feature_loss
-        gradients = g_tape.gradient(total_loss, self.generator.trainable_variables)
+        gradients = g_tape.gradient(
+            total_generator_loss, self.generator.trainable_variables
+        )
         self.generator_optimizer.apply_gradients(
             zip(gradients, self.generator.trainable_variables)
         )
-        return g_loss, kl_loss, content_loss, feature_loss, total_loss
+        return g_loss, kl_loss, content_loss, feature_loss
 
     def train_step(self, data):
         real_images_A, real_images_B, labels_A = data
-        mean, logvar = self.encoder(real_images_B)
-        latent = self.sampler([mean, logvar])
-        total_discriminator_loss = self.train_discriminator(
-            latent, real_images_A, real_images_B, labels_A
+        mean, variance = self.encoder(real_images_B)
+        latent_input = self.sampler([mean, variance])
+        discriminator_loss = self._discriminator_train_step(
+            latent_input, real_images_A, real_images_B, labels_A
+        )
+        g_loss, kl_loss, content_loss, feature_loss = self._generator_train_step(
+            latent_input, real_images_A, real_images_B, labels_A, mean, variance
+        )
+        return {
+            "discriminator_loss": discriminator_loss,
+            "generator_loss": g_loss,
+            "kl_divergence_loss": kl_loss,
+            "content_loss": content_loss,
+            "feature_loss": feature_loss,
+        }
+
+    def test_step(self, data):
+        real_images_A, real_images_B, labels_A = data
+        mean, variance = self.encoder(real_images_B)
+        latent_input = self.sampler([mean, variance])
+        discriminator_loss = self._compute_discriminator_loss(
+            latent_input, real_images_A, real_images_B, labels_A
         )
         (
             g_loss,
@@ -106,18 +156,23 @@ class GauGAN(Model):
             content_loss,
             feature_loss,
             total_generator_loss,
-        ) = self.train_generator(
-            latent, real_images_A, real_images_B, labels_A, mean, logvar
+        ) = self._compute_generator_losss(
+            latent_input, real_images_A, real_images_B, labels_A, mean, variance
         )
         return {
-            "total_discriminator_loss": total_discriminator_loss,
-            "total_discriminator_loss": total_discriminator_loss,
-            "generator_loss": g_loss,
-            "kl_loss": kl_loss,
+            "discriminator_loss": discriminator_loss,
+            "generator_loss": total_generator_loss,
+            "kl_divergence_loss": kl_loss,
             "content_loss": content_loss,
             "feature_loss": feature_loss,
-            "total_generator_loss": total_generator_loss,
         }
+
+    def call(self, inputs, training=None, mask=None):
+        real_images_B, labels_A = inputs[0], inputs[1]
+        mean, variance = self.encoder(real_images_B)
+        latent_input = self.sampler([mean, variance])
+        generated_images = self.generator([latent_input, labels_A])
+        return generated_images
 
     def save(
         self,
