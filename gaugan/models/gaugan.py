@@ -57,8 +57,12 @@ class GauGAN(Model):
             pred_real = self.discriminator(
                 [real_images_A, real_images_B], training=True
             )[-1]
-            loss_fake = self.discriminator_hinge_loss(pred_fake, -1.0) # negative -> fake labels
-            loss_real = self.discriminator_hinge_loss(pred_real, 1.0) # positive -> real labels
+            loss_fake = self.discriminator_hinge_loss(
+                pred_fake, -1.0
+            )  # negative -> fake labels
+            loss_real = self.discriminator_hinge_loss(
+                pred_real, 1.0
+            )  # positive -> real labels
             total_loss = 0.5 * (loss_fake + loss_real)
         gradients = d_tape.gradient(total_loss, self.discriminator.trainable_variables)
         self.discriminator_optimizer.apply_gradients(
