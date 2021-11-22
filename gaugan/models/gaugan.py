@@ -91,7 +91,7 @@ class GauGAN(Model):
         total_discriminator_loss = 0.5 * (fake_loss + real_loss)
         return total_discriminator_loss
 
-    def _compute_generator_losss(
+    def _compute_generator_loss(
         self, latent, real_images_A, real_images_B, labels_A, mean, variance
     ):
         real_d_output = self.discriminator([real_images_A, real_images_B])
