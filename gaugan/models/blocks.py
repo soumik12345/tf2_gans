@@ -6,6 +6,14 @@ from .spade import SpatialAdaptiveNormalization
 
 
 class ResidualBlock(layers.Layer):
+    """Residual Block
+
+    Reference: https://arxiv.org/abs/1903.07291
+
+    Args:
+        n_filters (int): Number of filters in the conv layers
+    """
+
     def __init__(self, n_filters: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.n_filters = n_filters
@@ -29,7 +37,7 @@ class ResidualBlock(layers.Layer):
         x = self.conv_2(tf.nn.leaky_relu(x, 0.2))
         if self.learned_skip:
             skip = self.spade_3(input_tensor, mask)
-            skip = self.conv_3(tf.nn.leaky_relu(skip, 0.2))
+            skip = self.conv_3(tf.nn.leaky_relu(x, 0.2))
         else:
             skip = input_tensor
         return skip + x
@@ -44,6 +52,20 @@ def downsample_block(
     apply_activation=True,
     apply_dropout=False,
 ):
+    """Downsample Block for GauGAN Encoder and Discriminator
+
+    Args:
+        input_tensor (tf.Tensor): Input tensor to the block
+        channels (int): number of filters in the conv layer
+        kernels (int): number of kernels in the conv layer
+        strides (int): number of strides in the conv layer
+        apply_norm (bool): Flag for applying normalization
+        apply_activation (bool): Flag for applying activation
+        apply_dropout (bool): Flag for applying dropout
+    
+    Returns:
+        Downsampled tensor
+    """
     x = layers.Conv2D(
         channels,
         kernels,
@@ -53,6 +75,6 @@ def downsample_block(
         kernel_initializer=initializers.GlorotNormal(),
     )(input_tensor)
     x = tfa.layers.InstanceNormalization()(x) if apply_norm else x
-    x = layers.LeakyReLU(0.2)(x) if apply_activation else x
+    x = tf.nn.leaky_relu(x, 0.2) if apply_activation else x
     x = layers.Dropout(0.5)(x) if apply_dropout else x
     return x

@@ -1,10 +1,20 @@
-from tensorflow import keras
 from tensorflow.keras import layers, Model, Input
 
 from .blocks import downsample_block
 
 
 def build_discriminator(image_size: int = 256, downsample_factor: int = 64):
+    """Build GauGAN Discriminator Model
+
+    Reference: https://arxiv.org/abs/1903.07291
+
+    Args:
+        image_size (int): input image size
+        downsample_factor (int): downsample factor
+    
+    Returns:
+        Generator Model (tf.keras.Model)
+    """
     image_1 = Input(shape=[image_size, image_size, 3])
     image_2 = Input(shape=[image_size, image_size, 3])
     x = layers.Concatenate()([image_1, image_2])

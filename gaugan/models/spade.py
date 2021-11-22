@@ -3,7 +3,14 @@ from tensorflow.keras import layers
 
 
 class SpatialAdaptiveNormalization(layers.Layer):
-    """Reference: https://arxiv.org/abs/1903.07291"""
+    """Spatial Adaptive Normalization Layer
+    
+    Reference: https://arxiv.org/abs/1903.07291
+
+    Args:
+        n_filters (int): Number of filters in gamma and beta conv layers
+        epsilon (float): Constant for the calculation of standard deviation
+    """
 
     def __init__(self, n_filters: int, epsilon: float = 1e-5, *args, **kwargs):
         super().__init__(*args, **kwargs)

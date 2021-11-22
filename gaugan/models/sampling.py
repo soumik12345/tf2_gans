@@ -3,6 +3,13 @@ from tensorflow.keras import layers
 
 
 class GaussianSampling(layers.Layer):
+    """Gaussian Sampler Layer
+
+    Args:
+        batch_size (int): batch size
+        latent_dimension (int): latent_dimension
+    """
+
     def __init__(self, batch_size: int, latent_dimension: int):
         super(GaussianSampling, self).__init__()
         self.batch_size = batch_size

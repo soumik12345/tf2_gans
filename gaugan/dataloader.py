@@ -9,6 +9,14 @@ _AUTOTUNE = tf.data.AUTOTUNE
 
 
 class PairedTranslationDataLoader:
+    """
+    DataLoader for Paired Image-to-image translation
+
+    Args:
+        image_size (int): Size of image crops
+        n_classes (int): Number of semantic classes
+    """
+
     def __init__(self, image_size: int = 256, n_classes: int = 12) -> None:
         self.image_size = image_size
         self.n_classes = n_classes
@@ -73,6 +81,18 @@ class PairedTranslationDataLoader:
     def get_datasets(
         self, dataset_path: str, val_split: float = 0.2, batch_size: int = 16
     ):
+        """
+        Get train and validation datasets
+
+        Args:
+            dataset_path (str): Path to datasets
+            val_split (float): Validation split
+            batch_size (int): Batch size
+        
+        Returns:
+            Tensorflow dataset objects corresponding to
+            train and validation datasets respectively.
+        """
         image_files = glob(os.path.join(dataset_path, "images", "*"))
         split_index = int(len(image_files) * (1 - val_split))
         train_image_files = image_files[:split_index]

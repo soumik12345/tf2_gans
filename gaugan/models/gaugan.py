@@ -24,6 +24,22 @@ class GauGAN(Model):
         *args,
         **kwargs
     ):
+        """GauGAN Model
+
+        Reference: https://arxiv.org/abs/1903.07291
+
+        Args:
+            image_size (int): Input image size
+            encoding_dimension (int): Encoding dimension
+            latent_dimension (int): Latent dimension
+            downsample_factor (int): Downsample factor for Discriminator
+            n_classes (int): Number of semantic classes
+            feature_loss_weight (float): Coefficient of feature loss
+            content_loss_weight (float): Coefficient of content loss
+            kl_divergence_weight (float): Coefficient of KL divergence loss
+            batch_size (int): Batch size
+            train_encoder (bool): Flag to train encoder or not during generator train step
+        """
         super().__init__(*args, **kwargs)
         self.encoder = build_encoder(image_size, encoding_dimension, latent_dimension)
         self.generator = build_generator(image_size, latent_dimension, n_classes)

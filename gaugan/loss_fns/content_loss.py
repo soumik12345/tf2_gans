@@ -3,6 +3,8 @@ from tensorflow.keras import losses, applications, Model
 
 
 class ContentLoss(losses.Loss):
+    """VGG19 based feature matching loss"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.encoder_layers = [
