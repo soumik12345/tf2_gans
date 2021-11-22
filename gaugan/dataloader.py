@@ -41,7 +41,9 @@ class PairedTranslationDataLoader:
 
     def _load_data_tf(self, image_file, segmentation_map_file, label_file):
         image = tf.image.decode_png(tf.io.read_file(image_file), channels=3)
-        segmentation_map = tf.image.decode_png(tf.io.read_file(segmentation_map_file), channels=3)
+        segmentation_map = tf.image.decode_png(
+            tf.io.read_file(segmentation_map_file), channels=3
+        )
         labels = tf.image.decode_bmp(tf.io.read_file(label_file), channels=0)
         labels = tf.squeeze(labels)
 
@@ -76,5 +78,7 @@ class PairedTranslationDataLoader:
         train_image_files = image_files[:split_index]
         val_image_files = image_files[split_index:]
         train_dataset = self._get_batched_dataset(train_image_files, batch_size)
-        val_dataset = self._get_batched_dataset(val_image_files, batch_size, is_train=False)
+        val_dataset = self._get_batched_dataset(
+            val_image_files, batch_size, is_train=False
+        )
         return train_dataset, val_dataset

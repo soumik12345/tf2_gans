@@ -20,6 +20,7 @@ class GauGAN(Model):
         content_loss_weight: float = 0.1,
         kl_divergence_weight: float = 0.1,
         batch_size: int = 16,
+        train_encoder: bool = False,
         *args,
         **kwargs
     ):
@@ -34,6 +35,7 @@ class GauGAN(Model):
         self.content_loss_weight = content_loss_weight
         self.kl_divergence_weight = kl_divergence_weight
         self.batch_size = batch_size
+        self.train_encoder = train_encoder
         self.patch_size = self.discriminator.output_shape[-1][1]
 
     def summary(self, line_length=None, positions=None, print_fn=None):
@@ -117,12 +119,11 @@ class GauGAN(Model):
             ) = self._compute_generator_losss(
                 latent, real_images_A, real_images_B, labels_A, mean, variance
             )
-        gradients = g_tape.gradient(
-            total_generator_loss, self.generator.trainable_variables
-        )
-        self.generator_optimizer.apply_gradients(
-            zip(gradients, self.generator.trainable_variables)
-        )
+        trainable_variables = self.generator.trainable_variables
+        if self.train_encoder:
+            trainable_variables += self.encoder.trainable_variables
+        gradients = g_tape.gradient(total_generator_loss, trainable_variables)
+        self.generator_optimizer.apply_gradients(zip(gradients, trainable_variables))
         return g_loss, kl_loss, content_loss, feature_loss
 
     def train_step(self, data):
