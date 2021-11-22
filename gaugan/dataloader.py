@@ -51,6 +51,16 @@ class PairedTranslationDataLoader:
         one_hot_encoded_labels = self._one_hot_encode(image, labels)
         return image, segmentation_map, one_hot_encoded_labels
 
+    def _load_data_tf(self, image_file, segmentation_map_file, label_file):
+        image = tf.image.decode_png(tf.io.read_file(image_file), channels=3)
+        segmentation_map = tf.image.decode_png(tf.io.read_file(segmentation_map_file), channels=3)
+        labels = tf.image.decode_bmp(tf.io.read_file(label_file), channels=0)
+
+        image = tf.cast(image, tf.float32) / 127.5 - 1
+        segmentation_map = tf.cast(segmentation_map, tf.float32) / 127.5 - 1
+        one_hot_encoded_labels = tf.one_hot(labels, self.n_classes)
+        return image, segmentation_map, one_hot_encoded_labels
+
     def _parse_fn(self, image_file, segmentation_map_file, label_file):
         return tf.py_function(
             self._load_data,
@@ -70,10 +80,10 @@ class PairedTranslationDataLoader:
         dataset = tf.data.Dataset.from_tensor_slices(
             (image_files, segmentation_map_files, label_files)
         )
-        dataset = dataset.map(self._parse_fn, num_parallel_calls=_AUTOTUNE)
+        dataset = dataset.map(self._load_data_tf, num_parallel_calls=_AUTOTUNE)
         dataset = dataset.map(self._random_crop, num_parallel_calls=_AUTOTUNE)
         dataset = dataset.batch(batch_size, drop_remainder=True)
-        return dataset
+        return dataset.prefetch(_AUTOTUNE)
 
     def get_datasets(
         self, dataset_path: str, val_split: float = 0.2, batch_size: int = 16
