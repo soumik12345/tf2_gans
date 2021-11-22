@@ -97,8 +97,8 @@ class GauGAN(Model):
         real_d_output = self.discriminator([real_images_A, real_images_B])
         fake_images = self.generator([latent, labels_A])
         fake_d_output = self.discriminator([real_images_A, fake_images])
-        prediction = fake_d_output[-1]
-        g_loss = generator_loss(prediction)
+        # g_loss = generator_loss(fake_d_output[-1])
+        g_loss = self.discriminator_hinge_loss(1., fake_d_output[-1])
         kl_loss = kl_divergence_loss(mean, variance)
         content_loss = self.content_loss(real_images_B, fake_images)
         feature_loss = self.feature_matching_loss(real_d_output, fake_d_output)
