@@ -25,15 +25,13 @@ class ContentLoss(losses.Loss):
         return Model(vgg.input, layer_outputs, name="VGG")
 
     def call(self, real_image, fake_image):
-        x = tf.reverse(real_image, axis=[-1])
-        y = tf.reverse(fake_image, axis=[-1])
-        x = applications.vgg19.preprocess_input(127.5 * (x + 1))
-        y = applications.vgg19.preprocess_input(127.5 * (y + 1))
-        feat_real = self.feature_model(x)
-        feat_fake = self.feature_model(y)
+        real_features = applications.vgg19.preprocess_input(127.5 * (real_image + 1))
+        fake_features = applications.vgg19.preprocess_input(127.5 * (fake_image + 1))
+        real_features = self.feature_model(real_features)
+        fake_features = self.feature_model(fake_features)
         loss = 0
-        for i in range(len(feat_real)):
+        for i in range(len(real_features)):
             loss += self.encoder_weights[i] * self.mean_absolute_error(
-                feat_real[i], feat_fake[i]
+                real_features[i], fake_features[i]
             )
         return loss
