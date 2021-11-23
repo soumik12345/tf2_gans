@@ -15,7 +15,6 @@ def get_config():
 
     # Training.
     configs.wandb_project = "gaugan"
-    configs.train_encoder = True
     configs.generator_lr = 1e-4
     configs.discriminator_lr = 4e-4
     configs.num_epochs = 50

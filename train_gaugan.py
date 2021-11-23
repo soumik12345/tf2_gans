@@ -22,7 +22,7 @@ train_dataset, val_dataset = dataloader.get_datasets(
 
 # Initialize model.
 logging.info("Initializing model...")
-gaugan_model = gaugan.GauGAN(train_encoder=training_configs.train_encoder)
+gaugan_model = gaugan.GauGAN()
 gaugan_model.compile(
     generator_lr=training_configs.generator_lr,
     discriminator_lr=training_configs.discriminator_lr,

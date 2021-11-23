@@ -188,8 +188,9 @@ class GauGAN(Model):
         real_images, segmentation_maps, segmentation_labels = data
         mean, variance = self.encoder(segmentation_maps)
         latent_input = self.sampler([mean, variance])
+        generated_images = self.generator([latent_input, segmentation_labels])
         discriminator_loss = self._compute_discriminator_loss(
-            latent_input, real_images, segmentation_maps
+            real_images, segmentation_maps, generated_images
         )
         (
             g_loss,
