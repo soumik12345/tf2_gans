@@ -9,7 +9,7 @@ training_configs = gaugan_configs.get_config()
 if training_configs["wandb_project"]:
     import wandb
 
-    wandb.init(project=training_configs["wandb_project"])
+    wandb.init(project=training_configs["wandb_project"], entity="gaugan")
 
 
 # Prepare datasets.
