@@ -85,8 +85,8 @@ class GauGAN(Model):
     def _compute_discriminator_loss(
         self, real_images, segmentation_maps, generated_images
     ):
-        fake_prediction = self.discriminator([real_images, segmentation_maps])[-1]
-        real_prediction = self.discriminator([generated_images, segmentation_maps])[-1]
+        fake_prediction = self.discriminator([generated_images, segmentation_maps])[-1]
+        real_prediction = self.discriminator([real_images, segmentation_maps])[-1]
         fake_loss = self.discriminator_hinge_loss(-1.0, fake_prediction)
         real_loss = self.discriminator_hinge_loss(1.0, real_prediction)
         total_discriminator_loss = 0.5 * (fake_loss + real_loss)
@@ -103,10 +103,10 @@ class GauGAN(Model):
     ):
         real_d_output = self.discriminator([real_images, segmentation_maps])
         fake_images = self.generator([latent, segmentation_labels])
-        fake_d_output = self.discriminator([real_images, fake_images])
+        fake_d_output = self.discriminator([fake_images, segmentation_maps])
         g_loss = self.discriminator_hinge_loss(1.0, fake_d_output[-1])
         kl_loss = kl_divergence_loss(mean, variance)
-        content_loss = self.content_loss(segmentation_maps, fake_images)
+        content_loss = self.content_loss(real_images, fake_images)
         feature_loss = self.feature_matching_loss(real_d_output, fake_d_output)
         total_generator_loss = (
             g_loss
