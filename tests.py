@@ -10,10 +10,6 @@ class PairedTranslationDataLoaderTester(unittest.TestCase):
         super().__init__(methodName=methodName)
 
     def test_facades(self):
-        os.system(
-            "gdown https://drive.google.com/uc?id=1zs2RPZkLeB5QDRVQtpqUtMwepR_Qfufp"
-        )
-        os.system("unzip -q facades.zip")
         data_loader = PairedTranslationDataLoader()
         train_dataset, val_dataset = data_loader.get_datasets(dataset_path="./facades/")
 
