@@ -1,11 +1,11 @@
-from .configs import gaugan_configs
 from .models import gaugan
 from .utils import GANMonitor
 from dataloader import PairedTranslationDataLoader
+from . import configs
 
 
 # Initialize training configs.
-training_configs = gaugan_configs.get_config()
+training_configs = configs.get_config()
 if training_configs["wandb_project"]:
     import wandb
 
