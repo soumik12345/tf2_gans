@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from tensorflow import keras
+import numpy as np
 import os
 
 
@@ -46,6 +47,9 @@ class GANMonitor(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         if epoch % self.epoch_interval == 0:
             generated_images = self.model.predict((self.segmentation_maps, self.labels))
+            # Since the generator has tanh activation, we need to map it within [-1, 1] to [0, 1].
+            generated_images = generated_images + 1
+            generated_images = np.clip(generated_images, 0, 1).astype(np.float32)
             figure_object = plot_results(generated_images, None, save_figure=True)
             figure_path = os.path.join(
                 self.root_dir,
