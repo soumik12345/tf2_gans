@@ -51,6 +51,9 @@ class GANMonitor(keras.callbacks.Callback):
             generated_images = generated_images + 1
             generated_images = np.clip(generated_images, 0, 1).astype(np.float32)
             figure_object = plot_results(generated_images, None, save_figure=True)
+
+            if not os.path.exists(os.path.join(self.root_dir, "intermediate_images")):
+                os.makedirs(os.path.join(self.root_dir, "intermediate_images"))
             figure_path = os.path.join(
                 self.root_dir,
                 "intermediate_images",
