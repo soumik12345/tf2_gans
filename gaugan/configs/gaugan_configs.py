@@ -20,7 +20,7 @@ def get_config():
     configs.discriminator_lr = 4e-4
     configs.num_epochs = 50
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    configs.training_dir = f"./training_dir-{timestamp}"
+    configs.training_dir = f"./gaugan-training_dir-{timestamp}"
     os.makedirs(configs.training_dir, exist_ok=True)
 
     return configs

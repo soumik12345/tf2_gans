@@ -1,7 +1,7 @@
-from .models import gaugan
-from .utils import GANMonitor
-from dataloader import PairedTranslationDataLoader
-from . import configs
+from gaugan.models import gaugan
+from gaugan.utils import GANMonitor
+from gaugan.dataloader import PairedTranslationDataLoader
+from gaugan import configs
 
 
 # Initialize training configs.
