@@ -36,8 +36,11 @@ gan_monitor = GANMonitor(
 
 # Train the GauGAN model.
 logging.info("Training model...")
-gan_monitor.fit(
-    train_dataset, validation_data=val_dataset, epochs=training_configs.num_epochs
+gaugan_model.fit(
+    train_dataset,
+    validation_data=val_dataset,
+    epochs=training_configs.num_epochs,
+    callbacks=[gan_monitor],
 )
 
 # Serialize the model.
