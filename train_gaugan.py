@@ -2,6 +2,7 @@ from gaugan.models import gaugan
 from gaugan.utils import GANMonitor
 from gaugan.dataloader import PairedTranslationDataLoader
 from gaugan import configs
+from absl import logging
 
 
 # Initialize training configs.
@@ -13,12 +14,14 @@ if training_configs["wandb_project"]:
 
 
 # Prepare datasets.
+logging.info("Preparing datasets...")
 dataloader = PairedTranslationDataLoader()
 train_dataset, val_dataset = dataloader.get_datasets(
     dataset_path=training_configs["dataset_root_dir"]
 )
 
 # Initialize model.
+logging.info("Initializing model...")
 gaugan_model = gaugan.GauGAN(train_encoder=training_configs.train_encoder)
 gaugan_model.compile(
     generator_lr=training_configs.generator_lr,
@@ -32,9 +35,11 @@ gan_monitor = GANMonitor(
 )
 
 # Train the GauGAN model.
+logging.info("Training model...")
 gan_monitor.fit(
     train_dataset, validation_data=val_dataset, epochs=training_configs.num_epochs
 )
 
 # Serialize the model.
+logging.info("Serializing model...")
 gaugan_model.save(training_configs.training_dir)
