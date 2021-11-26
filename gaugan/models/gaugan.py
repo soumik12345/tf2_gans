@@ -1,11 +1,10 @@
 import tensorflow as tf
-from tensorflow import keras
 from tensorflow.keras import optimizers, losses, models, Model
 
 from .generator import build_encoder, build_generator
 from .discriminator import build_discriminator
 from .sampling import GaussianSampling
-from ..loss_fns import ContentLoss, generator_loss, kl_divergence_loss
+from ..loss_fns import ContentLoss, kl_divergence_loss
 
 
 class GauGAN(Model):
@@ -46,7 +45,7 @@ class GauGAN(Model):
         self.discriminator = build_discriminator(image_size, downsample_factor)
         self.sampler = GaussianSampling(batch_size, latent_dimension)
         # Default value of the loss coefficients have been taken
-        # from https://arxiv.org/pdf/1711.11585.pdf
+        # from https://arxiv.org/abs/1711.11585.
         self.feature_loss_weight = feature_loss_weight
         self.content_loss_weight = content_loss_weight
         self.kl_divergence_weight = kl_divergence_weight
@@ -83,24 +82,31 @@ class GauGAN(Model):
             loss += self.mean_absolute_error(real_features[i], fake_features[i])
         return loss
 
-    def _compute_discriminator_loss(self, real_images_A, real_images_B, fake_images_B):
-        fake_prediction = self.discriminator([real_images_A, fake_images_B])[-1]
-        real_prediction = self.discriminator([real_images_A, real_images_B])[-1]
+    def _compute_discriminator_loss(
+        self, real_images, segmentation_maps, generated_images
+    ):
+        fake_prediction = self.discriminator([generated_images, segmentation_maps])[-1]
+        real_prediction = self.discriminator([real_images, segmentation_maps])[-1]
         fake_loss = self.discriminator_hinge_loss(-1.0, fake_prediction)
         real_loss = self.discriminator_hinge_loss(1.0, real_prediction)
         total_discriminator_loss = 0.5 * (fake_loss + real_loss)
         return total_discriminator_loss
 
     def _compute_generator_loss(
-        self, latent, real_images_A, real_images_B, labels_A, mean, variance
+        self,
+        latent,
+        real_images,
+        segmentation_maps,
+        segmentation_labels,
+        mean,
+        variance,
     ):
-        real_d_output = self.discriminator([real_images_A, real_images_B])
-        fake_images = self.generator([latent, labels_A])
-        fake_d_output = self.discriminator([real_images_A, fake_images])
-        # g_loss = generator_loss(fake_d_output[-1])
-        g_loss = self.discriminator_hinge_loss(1., fake_d_output[-1])
+        real_d_output = self.discriminator([real_images, segmentation_maps])
+        fake_images = self.generator([latent, segmentation_labels])
+        fake_d_output = self.discriminator([fake_images, segmentation_maps])
+        g_loss = self.discriminator_hinge_loss(1.0, fake_d_output[-1])
         kl_loss = kl_divergence_loss(mean, variance)
-        content_loss = self.content_loss(real_images_B, fake_images)
+        content_loss = self.content_loss(real_images, fake_images)
         feature_loss = self.feature_matching_loss(real_d_output, fake_d_output)
         total_generator_loss = (
             g_loss
@@ -110,11 +116,13 @@ class GauGAN(Model):
         )
         return g_loss, kl_loss, content_loss, feature_loss, total_generator_loss
 
-    def _discriminator_train_step(self, latent, real_images_A, real_images_B, labels_A):
-        fake_images_B = self.generator([latent, labels_A])
+    def _discriminator_train_step(
+        self, latent, real_images, segmentation_maps, segmentation_labels
+    ):
+        generated_images = self.generator([latent, segmentation_labels])
         with tf.GradientTape() as d_tape:
             total_loss = self._compute_discriminator_loss(
-                real_images_A, real_images_B, fake_images_B
+                real_images, segmentation_maps, generated_images
             )
         gradients = d_tape.gradient(total_loss, self.discriminator.trainable_variables)
         self.discriminator_optimizer.apply_gradients(
@@ -123,7 +131,13 @@ class GauGAN(Model):
         return total_loss
 
     def _generator_train_step(
-        self, latent, real_images_A, real_images_B, labels_A, mean, variance
+        self,
+        latent,
+        real_images,
+        segmentation_maps,
+        segmentation_labels,
+        mean,
+        variance,
     ):
         with tf.GradientTape() as g_tape:
             (
@@ -132,8 +146,13 @@ class GauGAN(Model):
                 content_loss,
                 feature_loss,
                 total_generator_loss,
-            ) = self._compute_generator_losss(
-                latent, real_images_A, real_images_B, labels_A, mean, variance
+            ) = self._compute_generator_loss(
+                latent,
+                real_images,
+                segmentation_maps,
+                segmentation_labels,
+                mean,
+                variance,
             )
         trainable_variables = self.generator.trainable_variables
         if self.train_encoder:
@@ -143,14 +162,19 @@ class GauGAN(Model):
         return g_loss, kl_loss, content_loss, feature_loss
 
     def train_step(self, data):
-        real_images_A, real_images_B, labels_A = data
-        mean, variance = self.encoder(real_images_B)
+        real_images, segmentation_maps, segmentation_labels = data
+        mean, variance = self.encoder(segmentation_maps)
         latent_input = self.sampler([mean, variance])
         discriminator_loss = self._discriminator_train_step(
-            latent_input, real_images_A, real_images_B, labels_A
+            latent_input, real_images, segmentation_maps, segmentation_labels
         )
         g_loss, kl_loss, content_loss, feature_loss = self._generator_train_step(
-            latent_input, real_images_A, real_images_B, labels_A, mean, variance
+            latent_input,
+            real_images,
+            segmentation_maps,
+            segmentation_labels,
+            mean,
+            variance,
         )
         return {
             "discriminator_loss": discriminator_loss,
@@ -161,11 +185,12 @@ class GauGAN(Model):
         }
 
     def test_step(self, data):
-        real_images_A, real_images_B, labels_A = data
-        mean, variance = self.encoder(real_images_B)
+        real_images, segmentation_maps, segmentation_labels = data
+        mean, variance = self.encoder(segmentation_maps)
         latent_input = self.sampler([mean, variance])
+        generated_images = self.generator([latent_input, segmentation_labels])
         discriminator_loss = self._compute_discriminator_loss(
-            latent_input, real_images_A, real_images_B, labels_A
+            real_images, segmentation_maps, generated_images
         )
         (
             g_loss,
@@ -173,8 +198,13 @@ class GauGAN(Model):
             content_loss,
             feature_loss,
             total_generator_loss,
-        ) = self._compute_generator_losss(
-            latent_input, real_images_A, real_images_B, labels_A, mean, variance
+        ) = self._compute_generator_loss(
+            latent_input,
+            real_images,
+            segmentation_maps,
+            segmentation_labels,
+            mean,
+            variance,
         )
         return {
             "discriminator_loss": discriminator_loss,
@@ -185,10 +215,10 @@ class GauGAN(Model):
         }
 
     def call(self, inputs, training=None, mask=None):
-        real_images_B, labels_A = inputs[0], inputs[1]
-        mean, variance = self.encoder(real_images_B)
+        segmentation_maps, segmentation_labels = inputs[0], inputs[1]
+        mean, variance = self.encoder(segmentation_maps)
         latent_input = self.sampler([mean, variance])
-        generated_images = self.generator([latent_input, labels_A])
+        generated_images = self.generator([latent_input, segmentation_labels])
         return generated_images
 
     def save(
@@ -270,7 +300,7 @@ class GauGAN(Model):
             options=options,
         )
         self.discriminator = models.load_model(
-            filepath=generator_filepath,
+            filepath=discriminator_filepath,
             custom_objects=custom_objects,
             compile=compile,
             options=options,
