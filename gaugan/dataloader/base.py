@@ -59,11 +59,8 @@ class PairedTranslationDataLoader(ABC):
             lambda x, y, z: (x, y, tf.one_hot(z, self.num_classes)),
             num_parallel_calls=_AUTOTUNE,
         )
-        return dataset.batch(batch_size, drop_remainder=True)
-
-    # @abstractmethod
-    # def download_dataset(self):
-    #     pass
+        dataset = dataset.batch(batch_size, drop_remainder=True)
+        return dataset.prefetch(_AUTOTUNE)
 
     @abstractmethod
     def get_datasets(self, batch_size: int, split_fraction: float):
