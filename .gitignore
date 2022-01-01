@@ -129,4 +129,6 @@ dmypy.json
 .pyre/
 
 # Dataset Directories
+**.zip
 facades/
+facades_data/
