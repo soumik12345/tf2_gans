@@ -1,13 +1,12 @@
 import matplotlib.pyplot as plt
 from gaugan.dataloader import FacadesDataLoader
 
+
 data_loader = FacadesDataLoader(
     target_image_height=256, target_image_width=256, num_classes=12
 )
 data_loader.download_dataset()
-train_dataset, val_dataset = data_loader.get_datasets(
-    batch_size=1, split_fraction=0.2
-)
+train_dataset, val_dataset = data_loader.get_datasets(batch_size=1, split_fraction=0.2)
 
 sample_train_batch = next(iter(train_dataset))
 print(f"Segmentation map batch shape: {sample_train_batch[0].shape}.")
