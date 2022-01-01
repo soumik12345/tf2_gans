@@ -16,6 +16,6 @@ jobs:
           pip install -U pip
           pip install -r requirements.docker
           apt-get install unzip
-          gdown https://drive.google.com/uc?id=1q4FEjQg1YSb4mPx2VdxL7LXKYu3voTMj
-          unzip -q facades_data.zip
+          wget https://github.com/soumik12345/tf2_gans/releases/download/v0.1/facades_data_subset.zip
+          unzip -q facades_data_subset.zip
           pytest tests.py -s
