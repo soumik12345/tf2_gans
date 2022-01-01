@@ -61,9 +61,9 @@ class PairedTranslationDataLoader(ABC):
         )
         return dataset.batch(batch_size, drop_remainder=True)
 
-    @abstractmethod
-    def download_dataset(self):
-        pass
+    # @abstractmethod
+    # def download_dataset(self):
+    #     pass
 
     @abstractmethod
     def get_datasets(self, batch_size: int, split_fraction: float):

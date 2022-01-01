@@ -1,28 +1,20 @@
 import os
-import gdown
 from glob import glob
 from typing import List, Tuple
 
 from .base import PairedTranslationDataLoader
-from .commons import extract_archive
 
 
 class FacadesDataLoader(PairedTranslationDataLoader):
     def __init__(
-        self, target_image_height: int, target_image_width: int, num_classes: int
+        self,
+        target_image_height: int = 256,
+        target_image_width: int = 256,
+        num_classes: int = 12,
+        data_dir: str = "facades_data",
     ) -> None:
         super().__init__(target_image_height, target_image_width, num_classes)
-        self.data_dir = "facades_data"
-        self.archive_path = "facades_data.zip"
-        self.data_url = (
-            "https://drive.google.com/uc?id=1q4FEjQg1YSb4mPx2VdxL7LXKYu3voTMj"
-        )
-
-    def download_dataset(self) -> None:
-        if not os.path.isdir(self.data_dir):
-            if not os.path.isfile(self.archive_path):
-                gdown.download(self.data_url)
-            extract_archive(self.archive_path, ".")
+        self.data_dir = data_dir
 
     def _get_file_list(self, image_files: List[str]) -> Tuple[List[str], List[str]]:
         segmentation_map_files = [
