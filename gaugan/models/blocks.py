@@ -6,7 +6,7 @@ import tensorflow_addons as tfa
 from .spade import SPADE
 
 
-class ResBlock(layers.Layer):
+class ResidualBlock(layers.Layer):
     def __init__(self, filters, **kwargs):
         super().__init__(**kwargs)
         self.filters = filters
@@ -37,7 +37,7 @@ class ResBlock(layers.Layer):
         return skip + x
 
 
-def downsample(
+def downsample_block(
     channels,
     kernels,
     strides=2,
