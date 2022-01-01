@@ -2,10 +2,12 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 from gaugan.dataloader import FacadesDataLoader
+from gaugan.models import GauGAN
 
 
 IMAGE_SIZE = 256
 NUM_CLASSES = 12
+LATENT_DIMENTION = 256
 
 data_loader = FacadesDataLoader(
     target_image_height=IMAGE_SIZE,
@@ -26,3 +28,12 @@ for segmentation_map, real_image in zip(sample_train_batch[0], sample_train_batc
     fig.add_subplot(1, 2, 2).set_title("Real Image")
     plt.imshow((real_image + 1) / 2)
     plt.show()
+
+gaugan = GauGAN(
+    image_size=IMAGE_SIZE,
+    num_classes=NUM_CLASSES,
+    batch_size=4,
+    latent_dim=LATENT_DIMENTION,
+)
+gaugan.combined_model.summary()
+print(gaugan.patch_size)
