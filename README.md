@@ -11,7 +11,7 @@ $ pip install -r requirements.txt
 ## Training GauGAN with [Facades](https://cmp.felk.cvut.cz/~tylecr1/facade/) dataset
 
 ```shell
-$ gdown https://drive.google.com/uc?id=1zs2RPZkLeB5QDRVQtpqUtMwepR_Qfufp
-$ unzip -q facades.zip
-$ python train_gaugan.py
+$ gdown https://drive.google.com/uc?id=1q4FEjQg1YSb4mPx2VdxL7LXKYu3voTMj
+$ unzip -q facades_data.zip
+$ python train_facades.py --facades_configs ./configs/facades.py
 ```

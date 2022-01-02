@@ -15,11 +15,12 @@ config_flags.DEFINE_config_file("facades_configs")
 
 
 def main(_):
-    logging.info("Building Tensorflow Datasets...")
+    logging.info("Building TensorFlow Datasets...")
     data_loader = FacadesDataLoader(
         target_image_height=FLAGS.facades_configs.image_height,
         target_image_width=FLAGS.facades_configs.image_width,
         num_classes=FLAGS.facades_configs.num_classes,
+        data_dir=FLAGS.facades_configs.dataset_dir,
     )
     train_dataset, val_dataset = data_loader.get_datasets(
         batch_size=FLAGS.facades_configs.batch_size,
@@ -38,8 +39,8 @@ def main(_):
 
     logging.info("Compiling GauGAN Model...")
     gaugan_model.compile(
-        gen_lr=FLAGS.facades_configs.generator_learning_rate,
-        disc_lr=FLAGS.facades_configs.discriminator_learning_rate,
+        gen_lr=FLAGS.facades_configs.hyperparameters.generator_learning_rate,
+        disc_lr=FLAGS.facades_configs.hyperparameters.discriminator_learning_rate,
     )
     logging.info("Done!!!")
 
@@ -58,7 +59,7 @@ def main(_):
     gaugan_model.fit(
         train_dataset,
         validation_data=val_dataset,
-        epochs=FLAGS.facades_configs.epochs,
+        epochs=FLAGS.facades_configs.hyperparameters.epochs,
         callbacks=[gan_monitor_callback],
     )
     logging.info("Training completed successfully!!!")
