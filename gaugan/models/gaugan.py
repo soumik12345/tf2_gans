@@ -20,13 +20,13 @@ class GauGAN(Model):
         num_classes,
         batch_size,
         latent_dim,
-        feature_loss_coeff=10,
-        vgg_feature_loss_coeff=0.1,
-        kl_divergence_loss_coeff=0.1,
-        encoder_downsample_factor: int = 64,
-        discriminator_downsample_factor: int = 64,
-        alpha: float = 0.2,
-        dropout: float = 0.5,
+        feature_loss_coeff: float,
+        vgg_feature_loss_coeff: float,
+        kl_divergence_loss_coeff: float,
+        encoder_downsample_factor: int,
+        discriminator_downsample_factor: int,
+        alpha: float,
+        dropout: float,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -95,7 +95,7 @@ class GauGAN(Model):
         )
         return patch_size, combined_model
 
-    def compile(self, gen_lr=1e-4, disc_lr=4e-4, **kwargs):
+    def compile(self, gen_lr: float = 1e-4, disc_lr: float = 4e-4, **kwargs):
         super().compile(**kwargs)
         self.generator_optimizer = optimizers.Adam(gen_lr, beta_1=0.0, beta_2=0.999)
         self.discriminator_optimizer = optimizers.Adam(
