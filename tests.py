@@ -77,6 +77,13 @@ class GauGANTester(unittest.TestCase):
             num_classes=12,
             batch_size=4,
             latent_dim=256,
+            feature_loss_coeff=10,
+            vgg_feature_loss_coeff=0.1,
+            kl_divergence_loss_coeff=0.1,
+            encoder_downsample_factor=64,
+            discriminator_downsample_factor=64,
+            alpha=0.2,
+            dropout=0.5
         )
         (x1, x2, x3, x4, x5), _ = gaugan.combined_model(
             [
