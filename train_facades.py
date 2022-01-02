@@ -16,7 +16,6 @@ config_flags.DEFINE_config_file("facades_configs")
 
 def main(_):
     logging.info("Building TensorFlow Datasets...")
-    print(FLAGS.facades_configs)
     data_loader = FacadesDataLoader(
         target_image_height=FLAGS.facades_configs.image_height,
         target_image_width=FLAGS.facades_configs.image_width,
