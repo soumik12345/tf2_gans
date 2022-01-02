@@ -1,8 +1,8 @@
 import os
+import matplotlib.pyplot as plt
+
 import tensorflow as tf
 from tensorflow.keras import callbacks
-
-from .utils import plot_results
 
 
 class GanMonitor(callbacks.Callback):
@@ -21,14 +21,21 @@ class GanMonitor(callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         if epoch % self.epoch_interval == 0:
             generated_images = self.infer()
-            for index in range(self.n_samples):
-                plot_results(
-                    [
-                        self.val_images[index][0],
-                        self.val_images[index][1],
-                        generated_images[index],
-                    ],
-                    ["Segmentation Map", "Ground Truth", "Generated Image"],
-                    figure_size=(18, 18),
-                    save_path=os.path.join(self.plot_save_dir, f"{epoch}.png"),
-                )
+            for _ in range(self.n_samples):
+                grid_row = min(generated_images.shape[0], 3)
+                f, axarr = plt.subplots(grid_row, 3, figsize=(18, grid_row * 6))
+                for row in range(grid_row):
+                    ax = axarr if grid_row == 1 else axarr[row]
+                    ax[0].imshow((self.val_images[0][row] + 1) / 2)
+                    ax[0].axis("off")
+                    ax[0].set_title("Mask", fontsize=20)
+                    ax[1].imshow((self.val_images[1][row] + 1) / 2)
+                    ax[1].axis("off")
+                    ax[1].set_title("Ground Truth", fontsize=20)
+                    ax[2].imshow((generated_images[row] + 1) / 2)
+                    ax[2].axis("off")
+                    ax[2].set_title("Generated", fontsize=20)
+                if self.plot_save_dir is None:
+                    plt.show()
+                else:
+                    plt.savefig(os.path.join(self.plot_save_dir, f"{epoch}.png"))

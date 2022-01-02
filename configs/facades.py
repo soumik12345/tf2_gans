@@ -1,12 +1,11 @@
 import ml_collections
 
-from configs import commons, hyperparameters
+from configs import hyperparameters
 
 
 def get_config() -> ml_collections.ConfigDict:
     config = ml_collections.ConfigDict()
 
-    config.common_configs = commons.get_config()
     config.hyperparameters = hyperparameters.get_config()
 
     config.image_height = 256
