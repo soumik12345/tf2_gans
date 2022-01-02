@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras import Input, Model
-from tensorflow.keras import optimizers
+from tensorflow.keras import optimizers, models
 
 from .sampling import GaussianSampler
 from .networks import build_encoder, build_generator, build_discriminator
@@ -47,7 +47,9 @@ class GauGAN(Model):
             alpha=alpha,
             dropout=dropout,
         )
-        self.generator = build_generator(self.mask_shape, latent_dim=self.latent_dim)
+        self.generator = build_generator(
+            self.mask_shape, latent_dim=self.latent_dim, alpha=alpha
+        )
         self.encoder = build_encoder(
             self.image_shape,
             encoder_downsample_factor=encoder_downsample_factor,
@@ -213,3 +215,79 @@ class GauGAN(Model):
     def call(self, inputs):
         latent_vectors, labels = inputs
         return self.generator([latent_vectors, labels])
+
+    def save(
+        self,
+        generator_filepath: str,
+        discriminator_filepath: str,
+        overwrite=True,
+        include_optimizer=True,
+        save_format=None,
+        signatures=None,
+        options=None,
+        save_traces=True,
+    ):
+        self.generator.save(
+            generator_filepath,
+            overwrite=overwrite,
+            include_optimizer=include_optimizer,
+            save_format=save_format,
+            signatures=signatures,
+            options=options,
+            save_traces=save_traces,
+        )
+        self.discriminator.save(
+            discriminator_filepath,
+            overwrite=overwrite,
+            include_optimizer=include_optimizer,
+            save_format=save_format,
+            signatures=signatures,
+            options=options,
+            save_traces=save_traces,
+        )
+
+    def load(self, generator_filepath: str, discriminator_filepath: str):
+        self.generator = models.load_model(generator_filepath)
+        self.discriminator = models.load_model(discriminator_filepath)
+
+    def save_weights(
+        self,
+        generator_filepath,
+        discriminator_filepath,
+        overwrite=True,
+        save_format=None,
+        options=None,
+    ):
+        self.generator.save_weights(
+            generator_filepath,
+            overwrite=overwrite,
+            save_format=save_format,
+            options=options,
+        )
+        self.discriminator.save_weights(
+            discriminator_filepath,
+            overwrite=overwrite,
+            save_format=save_format,
+            options=options,
+        )
+
+    def load_weights(
+        self,
+        generator_filepath,
+        discriminator_filepath,
+        by_name=False,
+        skip_mismatch=False,
+        options=None,
+    ):
+        self.generator.load_weights(
+            generator_filepath,
+            by_name=by_name,
+            skip_mismatch=skip_mismatch,
+            options=options,
+        )
+        self.discriminator.load_weights(
+            discriminator_filepath,
+            by_name=by_name,
+            skip_mismatch=skip_mismatch,
+            options=options,
+        )

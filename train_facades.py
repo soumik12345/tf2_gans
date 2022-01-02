@@ -1,3 +1,4 @@
+import os
 from absl import app
 from absl import flags
 from absl import logging
@@ -14,6 +15,7 @@ config_flags.DEFINE_config_file("facades_configs")
 
 
 def main(_):
+    logging.info("Building Tensorflow Datasets...")
     data_loader = FacadesDataLoader(
         target_image_height=FLAGS.facades_configs.image_height,
         target_image_width=FLAGS.facades_configs.image_width,
@@ -23,6 +25,9 @@ def main(_):
         batch_size=FLAGS.facades_configs.batch_size,
         split_fraction=FLAGS.facades_configs.split_fraction,
     )
+    logging.info("Done!!!")
+    
+    logging.info("Building GauGAN Model...")
     gaugan_model = GauGAN(
         image_size=FLAGS.facades_configs.image_height,
         num_classes=FLAGS.facades_configs.num_classes,
@@ -36,16 +41,43 @@ def main(_):
         alpha=FLAGS.facades_configs.common_configs.alpha,
         dropout=FLAGS.facades_configs.common_configs.dropout,
     )
+    logging.info("Done!!!")
+    
+    logging.info("Compiling GauGAN Model...")
     gaugan_model.compile(
         gen_lr=FLAGS.facades_configs.generator_learning_rate,
         disc_lr=FLAGS.facades_configs.discriminator_learning_rate,
     )
+    logging.info("Done!!!")
+    
+    logging.info("Creating callbacks...")
+    if not os.path.isdir(FLAGS.facades_configs.plot_save_dir):
+        os.makedirs(FLAGS.facades_configs.plot_save_dir)
+    gan_monitor_callback = GanMonitor(
+        val_dataset,
+        FLAGS.facades_configs.batch_size,
+        epoch_interval=FLAGS.facades_configs.epoch_interval,
+        plot_save_dir=FLAGS.facades_configs.plot_save_dir,
+    )
+    logging.info("Done!!!")
+    
+    logging.info("Training GauGAN on Facades Dataset...")
     gaugan_model.fit(
         train_dataset,
         validation_data=val_dataset,
         epochs=FLAGS.facades_configs.epochs,
-        callbacks=[GanMonitor(val_dataset, FLAGS.facades_configs.batch_size)],
+        callbacks=[gan_monitor_callback],
     )
+    logging.info("Training completed successfully!!!")
+    
+    logging.info(f"Saving models at {FLAGS.facades_configs.model_save_dir}")
+    if not os.path.isdir(FLAGS.facades_configs.model_save_dir):
+        os.makedirs(FLAGS.facades_configs.model_save_dir)
+    gaugan_model.save(
+        os.path.join(FLAGS.facades_configs.model_save_dir, "generator"),
+        os.path.join(FLAGS.facades_configs.model_save_dir, "discriminator"),
+    )
+    logging.info("Done!!!")
 
 
 if __name__ == "__main__":

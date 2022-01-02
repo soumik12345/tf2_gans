@@ -1,3 +1,4 @@
+import os
 import tensorflow as tf
 from tensorflow.keras import callbacks
 
@@ -5,10 +6,11 @@ from .utils import plot_results
 
 
 class GanMonitor(callbacks.Callback):
-    def __init__(self, val_dataset, n_samples, epoch_interval=5):
+    def __init__(self, val_dataset, n_samples: int, epoch_interval: int, plot_save_dir):
         self.val_images = next(iter(val_dataset))
         self.n_samples = n_samples
         self.epoch_interval = epoch_interval
+        self.plot_save_dir = plot_save_dir
 
     def infer(self):
         latent_vector = tf.random.normal(
@@ -28,4 +30,5 @@ class GanMonitor(callbacks.Callback):
                     ],
                     ["Segmentation Map", "Ground Truth", "Generated Image"],
                     figure_size=(18, 18),
+                    save_path=os.path.join(self.plot_save_dir, f"{epoch}.png"),
                 )

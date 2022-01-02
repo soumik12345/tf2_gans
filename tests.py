@@ -27,37 +27,56 @@ class FacadesDataLoaderTester(unittest.TestCase):
 class ModelTester(unittest.TestCase):
     def __init__(self, methodName: str = ...) -> None:
         super().__init__(methodName=methodName)
+        self.image_size = 256
+        self.latent_dim = 256
+        self.num_classes = 12
+        self.encoder_downsample_factor = 64
+        self.discriminator_downsample_factor = 64
+        self.alpha = 12
+        self.dropout = 0.5
 
     def test_encoder(self):
         encoder = build_encoder(
-            image_shape=(256, 256, 3),
-            encoder_downsample_factor=64,
-            latent_dim=256,
-            alpha=0.2,
-            dropout=0.5,
+            image_shape=(self.image_size, self.image_size, 3),
+            encoder_downsample_factor=self.encoder_downsample_factor,
+            latent_dim=self.latent_dim,
+            alpha=self.alpha,
+            dropout=self.dropout,
         )
-        mean, logvar = encoder(tf.zeros((1, 256, 256, 3), dtype=tf.float32))
-        assert mean.shape == (1, 256)
-        assert logvar.shape == (1, 256)
+        mean, logvar = encoder(
+            tf.zeros((1, self.image_size, self.image_size, 3), dtype=tf.float32)
+        )
+        assert mean.shape == (1, self.latent_dim)
+        assert logvar.shape == (1, self.latent_dim)
 
     def test_generator(self):
-        generator = build_generator(mask_shape=(256, 256, 12), latent_dim=256)
+        generator = build_generator(
+            mask_shape=(self.image_size, self.image_size, self.num_classes),
+            latent_dim=self.latent_dim,
+            alpha=self.alpha,
+        )
         output_image = generator(
             [
-                tf.zeros((1, 256), dtype=tf.float32),
-                tf.zeros((1, 256, 256, 12), dtype=tf.float32),
+                tf.zeros((1, self.latent_dim), dtype=tf.float32),
+                tf.zeros(
+                    (1, self.image_size, self.image_size, self.num_classes),
+                    dtype=tf.float32,
+                ),
             ]
         )
-        assert output_image.shape == (1, 256, 256, 3)
+        assert output_image.shape == (1, self.image_size, self.image_size, 3)
 
     def test_discriminator(self):
         discriminator = build_discriminator(
-            image_shape=(256, 256, 3), downsample_factor=64, alpha=0.2, dropout=0.5
+            image_shape=(self.image_size, self.image_size, 3),
+            downsample_factor=self.discriminator_downsample_factor,
+            alpha=self.alpha,
+            dropout=self.dropout,
         )
         x1, x2, x3, x4, x5 = discriminator(
             [
-                tf.zeros((1, 256, 256, 3), dtype=tf.float32),
-                tf.zeros((1, 256, 256, 3), dtype=tf.float32),
+                tf.zeros((1, self.image_size, self.image_size, 3), dtype=tf.float32),
+                tf.zeros((1, self.image_size, self.image_size, 3), dtype=tf.float32),
             ]
         )
         assert x1.shape == (1, 128, 128, 64)
@@ -70,26 +89,36 @@ class ModelTester(unittest.TestCase):
 class GauGANTester(unittest.TestCase):
     def __init__(self, methodName: str = ...) -> None:
         super().__init__(methodName=methodName)
+        self.image_size = 256
+        self.latent_dim = 256
+        self.num_classes = 12
+        self.encoder_downsample_factor = 64
+        self.discriminator_downsample_factor = 64
+        self.alpha = 12
+        self.dropout = 0.5
 
     def test_combined_model(self):
         gaugan = GauGAN(
-            image_size=256,
-            num_classes=12,
+            image_size=self.image_size,
+            num_classes=self.num_classes,
             batch_size=4,
-            latent_dim=256,
+            latent_dim=self.latent_dim,
             feature_loss_coeff=10,
             vgg_feature_loss_coeff=0.1,
             kl_divergence_loss_coeff=0.1,
             encoder_downsample_factor=64,
             discriminator_downsample_factor=64,
-            alpha=0.2,
-            dropout=0.5
+            alpha=self.alpha,
+            dropout=self.dropout,
         )
         (x1, x2, x3, x4, x5), _ = gaugan.combined_model(
             [
-                tf.zeros((1, 256), dtype=tf.float32),
-                tf.zeros((1, 256, 256, 12), dtype=tf.float32),
-                tf.zeros((1, 256, 256, 3), dtype=tf.float32),
+                tf.zeros((1, self.latent_dim), dtype=tf.float32),
+                tf.zeros(
+                    (1, self.image_size, self.image_size, self.num_classes),
+                    dtype=tf.float32,
+                ),
+                tf.zeros((1, self.image_size, self.image_size, 3), dtype=tf.float32),
             ]
         )
         assert x1.shape == (1, 128, 128, 64)

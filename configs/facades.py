@@ -22,5 +22,8 @@ def get_config() -> ml_collections.ConfigDict:
     config.generator_learning_rate = 1e-4
     config.discriminator_learning_rate = 4e-4
     config.epochs = 15
+    config.epoch_interval = 5
+    config.plot_save_dir = "checkpoints/plots"
+    config.model_save_dir = "checkpoint/models"
 
     return config

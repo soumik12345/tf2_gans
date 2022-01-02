@@ -7,9 +7,10 @@ from .spade import SPADE
 
 
 class ResidualBlock(layers.Layer):
-    def __init__(self, filters, **kwargs):
+    def __init__(self, filters: int, alpha: float, **kwargs):
         super().__init__(**kwargs)
         self.filters = filters
+        self.alpha = alpha
 
     def build(self, input_shape):
         input_filter = input_shape[-1]
@@ -26,11 +27,11 @@ class ResidualBlock(layers.Layer):
 
     def call(self, input_tensor, mask):
         x = self.spade_1(input_tensor, mask)
-        x = self.conv_1(tf.nn.leaky_relu(x, 0.2))
+        x = self.conv_1(tf.nn.leaky_relu(x, self.alpha))
         x = self.spade_2(x, mask)
-        x = self.conv_2(tf.nn.leaky_relu(x, 0.2))
+        x = self.conv_2(tf.nn.leaky_relu(x, self.alpha))
         skip = (
-            self.conv_3(tf.nn.leaky_relu(self.spade_3(input_tensor, mask), 0.2))
+            self.conv_3(tf.nn.leaky_relu(self.spade_3(input_tensor, mask), self.alpha))
             if self.learned_skip
             else input_tensor
         )
