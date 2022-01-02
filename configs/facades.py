@@ -9,6 +9,7 @@ def get_config() -> ml_collections.ConfigDict:
     config.common_configs = commons.get_config()
     config.hyperparameters = hyperparameters.get_config()
 
+    config.dataset_dir = "facades_data"
     config.image_height = 256
     config.image_width = 256
     config.num_classes = 12
