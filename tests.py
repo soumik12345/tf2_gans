@@ -1,6 +1,8 @@
 import unittest
 import tensorflow as tf
 
+from configs import hyperparameters
+
 from gaugan.dataloader import FacadesDataLoader
 from gaugan.models import build_encoder, build_generator, build_discriminator, GauGAN
 
@@ -102,14 +104,7 @@ class GauGANTester(unittest.TestCase):
             image_size=self.image_size,
             num_classes=self.num_classes,
             batch_size=4,
-            latent_dim=self.latent_dim,
-            feature_loss_coeff=10,
-            vgg_feature_loss_coeff=0.1,
-            kl_divergence_loss_coeff=0.1,
-            encoder_downsample_factor=64,
-            discriminator_downsample_factor=64,
-            alpha=self.alpha,
-            dropout=self.dropout,
+            hyperparameters=hyperparameters.get_config(),
         )
         (x1, x2, x3, x4, x5), _ = gaugan.combined_model(
             [

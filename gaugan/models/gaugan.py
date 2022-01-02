@@ -26,7 +26,7 @@ class GauGAN(Model):
         super().__init__(**kwargs)
 
         self.image_size = image_size
-        self.latent_dim = hyperparameters.latent_dim
+        self.latent_dim = hyperparameters.latent_dimention
         self.batch_size = batch_size
         self.num_classes = num_classes
         self.image_shape = (image_size, image_size, 3)
@@ -51,7 +51,7 @@ class GauGAN(Model):
             alpha=hyperparameters.alpha,
             dropout=hyperparameters.dropout,
         )
-        self.sampler = GaussianSampler(batch_size, hyperparameters.latent_dim)
+        self.sampler = GaussianSampler(batch_size, self.latent_dim)
         self.patch_size, self.combined_model = self.build_combined_generator()
 
         self.disc_loss_tracker = tf.keras.metrics.Mean(name="disc_loss")
