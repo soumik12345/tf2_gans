@@ -1,3 +1,4 @@
+import ml_collections
 import tensorflow as tf
 from tensorflow.keras import Input, Model
 from tensorflow.keras import optimizers, models
@@ -16,48 +17,41 @@ from ..losses import (
 class GauGAN(Model):
     def __init__(
         self,
-        image_size,
-        num_classes,
-        batch_size,
-        latent_dim,
-        feature_loss_coeff: float,
-        vgg_feature_loss_coeff: float,
-        kl_divergence_loss_coeff: float,
-        encoder_downsample_factor: int,
-        discriminator_downsample_factor: int,
-        alpha: float,
-        dropout: float,
+        image_size: int,
+        num_classes: int,
+        batch_size: int,
+        hyperparameters: ml_collections.ConfigDict,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
         self.image_size = image_size
-        self.latent_dim = latent_dim
+        self.latent_dim = hyperparameters.latent_dim
         self.batch_size = batch_size
         self.num_classes = num_classes
         self.image_shape = (image_size, image_size, 3)
         self.mask_shape = (image_size, image_size, num_classes)
-        self.feature_loss_coeff = feature_loss_coeff
-        self.vgg_feature_loss_coeff = vgg_feature_loss_coeff
-        self.kl_divergence_loss_coeff = kl_divergence_loss_coeff
+        self.feature_loss_coeff = hyperparameters.feature_loss_coefficient
+        self.vgg_feature_loss_coeff = hyperparameters.vgg_feature_loss_coefficient
+        self.kl_divergence_loss_coeff = hyperparameters.kl_divergence_loss_coefficient
 
         self.discriminator = build_discriminator(
             self.image_shape,
-            downsample_factor=discriminator_downsample_factor,
-            alpha=alpha,
-            dropout=dropout,
+            downsample_factor=hyperparameters.discriminator_downsample_factor,
+            alpha=hyperparameters.alpha,
+            dropout=hyperparameters.dropout,
         )
         self.generator = build_generator(
-            self.mask_shape, latent_dim=self.latent_dim, alpha=alpha
+            self.mask_shape, latent_dim=self.latent_dim, alpha=hyperparameters.alpha
         )
         self.encoder = build_encoder(
             self.image_shape,
-            encoder_downsample_factor=encoder_downsample_factor,
+            encoder_downsample_factor=hyperparameters.encoder_downsample_factor,
             latent_dim=self.latent_dim,
-            alpha=alpha,
-            dropout=dropout,
+            alpha=hyperparameters.alpha,
+            dropout=hyperparameters.dropout,
         )
-        self.sampler = GaussianSampler(batch_size, latent_dim)
+        self.sampler = GaussianSampler(batch_size, hyperparameters.latent_dim)
         self.patch_size, self.combined_model = self.build_combined_generator()
 
         self.disc_loss_tracker = tf.keras.metrics.Mean(name="disc_loss")

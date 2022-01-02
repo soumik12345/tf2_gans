@@ -26,30 +26,23 @@ def main(_):
         split_fraction=FLAGS.facades_configs.split_fraction,
     )
     logging.info("Done!!!")
-    
+
     logging.info("Building GauGAN Model...")
     gaugan_model = GauGAN(
         image_size=FLAGS.facades_configs.image_height,
         num_classes=FLAGS.facades_configs.num_classes,
         batch_size=FLAGS.facades_configs.batch_size,
-        latent_dim=FLAGS.facades_configs.latent_dimention,
-        feature_loss_coeff=FLAGS.facades_configs.feature_loss_coefficient,
-        vgg_feature_loss_coeff=FLAGS.facades_configs.vgg_feature_loss_coefficient,
-        kl_divergence_loss_coeff=FLAGS.facades_configs.kl_divergence_loss_coefficient,
-        encoder_downsample_factor=FLAGS.facades_configs.encoder_downsample_factor,
-        discriminator_downsample_factor=FLAGS.facades_configs.discriminator_downsample_factor,
-        alpha=FLAGS.facades_configs.common_configs.alpha,
-        dropout=FLAGS.facades_configs.common_configs.dropout,
+        hyperparameters=FLAGS.facades_configs.hyperparameters,
     )
     logging.info("Done!!!")
-    
+
     logging.info("Compiling GauGAN Model...")
     gaugan_model.compile(
         gen_lr=FLAGS.facades_configs.generator_learning_rate,
         disc_lr=FLAGS.facades_configs.discriminator_learning_rate,
     )
     logging.info("Done!!!")
-    
+
     logging.info("Creating callbacks...")
     if not os.path.isdir(FLAGS.facades_configs.plot_save_dir):
         os.makedirs(FLAGS.facades_configs.plot_save_dir)
@@ -60,7 +53,7 @@ def main(_):
         plot_save_dir=FLAGS.facades_configs.plot_save_dir,
     )
     logging.info("Done!!!")
-    
+
     logging.info("Training GauGAN on Facades Dataset...")
     gaugan_model.fit(
         train_dataset,
@@ -69,7 +62,7 @@ def main(_):
         callbacks=[gan_monitor_callback],
     )
     logging.info("Training completed successfully!!!")
-    
+
     logging.info(f"Saving models at {FLAGS.facades_configs.model_save_dir}")
     if not os.path.isdir(FLAGS.facades_configs.model_save_dir):
         os.makedirs(FLAGS.facades_configs.model_save_dir)
