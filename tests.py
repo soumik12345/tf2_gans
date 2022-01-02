@@ -29,13 +29,19 @@ class ModelTester(unittest.TestCase):
         super().__init__(methodName=methodName)
 
     def test_encoder(self):
-        encoder = build_encoder(image_shape=(256, 256, 3))
+        encoder = build_encoder(
+            image_shape=(256, 256, 3),
+            encoder_downsample_factor=64,
+            latent_dim=256,
+            alpha=0.2,
+            dropout=0.5,
+        )
         mean, logvar = encoder(tf.zeros((1, 256, 256, 3), dtype=tf.float32))
         assert mean.shape == (1, 256)
         assert logvar.shape == (1, 256)
 
     def test_generator(self):
-        generator = build_generator(mask_shape=(256, 256, 12))
+        generator = build_generator(mask_shape=(256, 256, 12), latent_dim=256)
         output_image = generator(
             [
                 tf.zeros((1, 256), dtype=tf.float32),
@@ -45,7 +51,9 @@ class ModelTester(unittest.TestCase):
         assert output_image.shape == (1, 256, 256, 3)
 
     def test_discriminator(self):
-        discriminator = build_discriminator(image_shape=(256, 256, 3))
+        discriminator = build_discriminator(
+            image_shape=(256, 256, 3), downsample_factor=64, alpha=0.2, dropout=0.5
+        )
         x1, x2, x3, x4, x5 = discriminator(
             [
                 tf.zeros((1, 256, 256, 3), dtype=tf.float32),
