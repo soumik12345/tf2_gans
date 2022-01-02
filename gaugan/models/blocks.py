@@ -44,7 +44,9 @@ def downsample_block(
     apply_norm=True,
     apply_activation=True,
     apply_dropout=False,
-):
+    alpha: float = 0.2,
+    dropout: float = 0.5,
+) -> Sequential:
     block = Sequential()
     block.add(
         layers.Conv2D(
@@ -59,7 +61,7 @@ def downsample_block(
     if apply_norm:
         block.add(tfa.layers.InstanceNormalization())
     if apply_activation:
-        block.add(layers.LeakyReLU(0.2))
+        block.add(layers.LeakyReLU(alpha))
     if apply_dropout:
-        block.add(layers.Dropout(0.5))
+        block.add(layers.Dropout(dropout))
     return block

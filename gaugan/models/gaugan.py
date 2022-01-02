@@ -23,6 +23,10 @@ class GauGAN(Model):
         feature_loss_coeff=10,
         vgg_feature_loss_coeff=0.1,
         kl_divergence_loss_coeff=0.1,
+        encoder_downsample_factor: int = 64,
+        discriminator_downsample_factor: int = 64,
+        alpha: float = 0.2,
+        dropout: float = 0.5,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -37,9 +41,20 @@ class GauGAN(Model):
         self.vgg_feature_loss_coeff = vgg_feature_loss_coeff
         self.kl_divergence_loss_coeff = kl_divergence_loss_coeff
 
-        self.discriminator = build_discriminator(self.image_shape)
-        self.generator = build_generator(self.mask_shape)
-        self.encoder = build_encoder(self.image_shape)
+        self.discriminator = build_discriminator(
+            self.image_shape,
+            downsample_factor=discriminator_downsample_factor,
+            alpha=alpha,
+            dropout=dropout,
+        )
+        self.generator = build_generator(self.mask_shape, latent_dim=self.latent_dim)
+        self.encoder = build_encoder(
+            self.image_shape,
+            encoder_downsample_factor=encoder_downsample_factor,
+            latent_dim=self.latent_dim,
+            alpha=alpha,
+            dropout=dropout,
+        )
         self.sampler = GaussianSampler(batch_size, latent_dim)
         self.patch_size, self.combined_model = self.build_combined_generator()
 
