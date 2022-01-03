@@ -19,7 +19,7 @@ class GanMonitor(callbacks.Callback):
         return self.model.predict([latent_vector, self.val_images[2]])
 
     def on_epoch_end(self, epoch, logs=None):
-        if epoch % self.epoch_interval == 0:
+        if epoch == 0 or (epoch + 1) % self.epoch_interval == 0:
             generated_images = self.infer()
             for _ in range(self.n_samples):
                 grid_row = min(generated_images.shape[0], 3)
