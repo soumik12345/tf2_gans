@@ -1,229 +1,219 @@
+import ml_collections
 import tensorflow as tf
-from tensorflow.keras import optimizers, losses, models, Model
+from tensorflow.keras import Input, Model
+from tensorflow.keras import optimizers, models
 
-from .generator import build_encoder, build_generator
-from .discriminator import build_discriminator
-from .sampling import GaussianSampling
-from ..loss_fns import ContentLoss, kl_divergence_loss
+from .sampling import GaussianSampler
+from .networks import build_encoder, build_generator, build_discriminator
+from ..losses import (
+    generator_loss,
+    kl_divergence_loss,
+    DiscriminatorLoss,
+    FeatureMatchingLoss,
+    VGGFeatureMatchingLoss,
+)
 
 
 class GauGAN(Model):
     def __init__(
         self,
-        image_size: int = 256,
-        encoding_dimension: int = 64,
-        latent_dimension: int = 256,
-        downsample_factor: int = 64,
-        n_classes: int = 12,
-        feature_loss_weight: float = 10.0,
-        content_loss_weight: float = 0.1,
-        kl_divergence_weight: float = 0.1,
-        batch_size: int = 16,
-        train_encoder: bool = False,
-        *args,
-        **kwargs
+        image_size: int,
+        num_classes: int,
+        batch_size: int,
+        hyperparameters: ml_collections.ConfigDict,
+        **kwargs,
     ):
-        """GauGAN Model
+        super().__init__(**kwargs)
 
-        Reference: https://arxiv.org/abs/1903.07291
-
-        Args:
-            image_size (int): Input image size
-            encoding_dimension (int): Encoding dimension
-            latent_dimension (int): Latent dimension
-            downsample_factor (int): Downsample factor for Discriminator
-            n_classes (int): Number of semantic classes
-            feature_loss_weight (float): Coefficient of feature loss
-            content_loss_weight (float): Coefficient of content loss
-            kl_divergence_weight (float): Coefficient of KL divergence loss
-            batch_size (int): Batch size
-            train_encoder (bool): Flag to train encoder or not during generator train step
-        """
-        super().__init__(*args, **kwargs)
-        self.encoder = build_encoder(image_size, encoding_dimension, latent_dimension)
-        self.generator = build_generator(image_size, latent_dimension, n_classes)
-        self.discriminator = build_discriminator(image_size, downsample_factor)
-        self.sampler = GaussianSampling(batch_size, latent_dimension)
-        # Default value of the loss coefficients have been taken
-        # from https://arxiv.org/abs/1711.11585.
-        self.feature_loss_weight = feature_loss_weight
-        self.content_loss_weight = content_loss_weight
-        self.kl_divergence_weight = kl_divergence_weight
+        self.image_size = image_size
+        self.latent_dim = hyperparameters.latent_dimention
         self.batch_size = batch_size
-        self.train_encoder = train_encoder
-        self.patch_size = self.discriminator.output_shape[-1][1]
+        self.num_classes = num_classes
+        self.image_shape = (image_size, image_size, 3)
+        self.mask_shape = (image_size, image_size, num_classes)
+        self.feature_loss_coeff = hyperparameters.feature_loss_coefficient
+        self.vgg_feature_loss_coeff = hyperparameters.vgg_feature_loss_coefficient
+        self.kl_divergence_loss_coeff = hyperparameters.kl_divergence_loss_coefficient
 
-    def summary(self, line_length=None, positions=None, print_fn=None):
-        self.encoder.summary(line_length, positions, print_fn)
-        self.generator.summary(line_length, positions, print_fn)
-        self.discriminator.summary(line_length, positions, print_fn)
-
-    def compile(
-        self,
-        generator_lr: float = 1e-4,
-        discriminator_lr: float = 4e-4,
-        *args,
-        **kwargs
-    ):
-        super().compile(*args, **kwargs)
-        self.generator_optimizer = optimizers.Adam(
-            learning_rate=generator_lr, beta_1=0.0
+        self.discriminator = build_discriminator(
+            self.image_shape,
+            downsample_factor=hyperparameters.discriminator_downsample_factor,
+            alpha=hyperparameters.alpha,
+            dropout=hyperparameters.dropout,
         )
+        self.generator = build_generator(
+            self.mask_shape, latent_dim=self.latent_dim, alpha=hyperparameters.alpha
+        )
+        self.encoder = build_encoder(
+            self.image_shape,
+            encoder_downsample_factor=hyperparameters.encoder_downsample_factor,
+            latent_dim=self.latent_dim,
+            alpha=hyperparameters.alpha,
+            dropout=hyperparameters.dropout,
+        )
+        self.sampler = GaussianSampler(batch_size, self.latent_dim)
+        self.patch_size, self.combined_model = self.build_combined_generator()
+
+        self.disc_loss_tracker = tf.keras.metrics.Mean(name="disc_loss")
+        self.gen_loss_tracker = tf.keras.metrics.Mean(name="gen_loss")
+        self.feat_loss_tracker = tf.keras.metrics.Mean(name="feat_loss")
+        self.vgg_loss_tracker = tf.keras.metrics.Mean(name="vgg_loss")
+        self.kl_loss_tracker = tf.keras.metrics.Mean(name="kl_loss")
+
+    @property
+    def metrics(self):
+        return [
+            self.disc_loss_tracker,
+            self.gen_loss_tracker,
+            self.feat_loss_tracker,
+            self.vgg_loss_tracker,
+            self.kl_loss_tracker,
+        ]
+
+    def build_combined_generator(self):
+        # This method builds a model that takes as inputs the following:
+        # latent vector, one-hot encoded segmentation label map, and
+        # a segmentation map. It then (i) generates an image with the generator,
+        # (ii) passes the generated images and segmentation map to the discriminator.
+        # Finally, the model produces the following outputs: (a) discriminator outputs,
+        # (b) generated image.
+        # We will be using this model to simplify the implementation.
+        self.discriminator.trainable = False
+        mask_input = Input(shape=self.mask_shape, name="mask")
+        image_input = Input(shape=self.image_shape, name="image")
+        latent_input = Input(shape=(self.latent_dim), name="latent")
+        generated_image = self.generator([latent_input, mask_input])
+        discriminator_output = self.discriminator([image_input, generated_image])
+        patch_size = discriminator_output[-1].shape[1]
+        combined_model = Model(
+            [latent_input, mask_input, image_input],
+            [discriminator_output, generated_image],
+        )
+        return patch_size, combined_model
+
+    def compile(self, gen_lr: float = 1e-4, disc_lr: float = 4e-4, **kwargs):
+        super().compile(**kwargs)
+        self.generator_optimizer = optimizers.Adam(gen_lr, beta_1=0.0, beta_2=0.999)
         self.discriminator_optimizer = optimizers.Adam(
-            learning_rate=discriminator_lr, beta_1=0.0
+            disc_lr, beta_1=0.0, beta_2=0.999
         )
-        self.content_loss = ContentLoss()
-        self.discriminator_hinge_loss = losses.Hinge()
-        self.mean_absolute_error = losses.MeanAbsoluteError()
+        self.discriminator_loss = DiscriminatorLoss()
+        self.feature_matching_loss = FeatureMatchingLoss()
+        self.vgg_loss = VGGFeatureMatchingLoss()
 
-    def feature_matching_loss(self, real_features, fake_features):
-        loss = 0
-        for i in range(len(real_features) - 1):
-            loss += self.mean_absolute_error(real_features[i], fake_features[i])
-        return loss
+    def train_discriminator(self, latent_vector, segmentation_map, real_image, labels):
+        fake_images = self.generator([latent_vector, labels])
+        with tf.GradientTape() as gradient_tape:
+            pred_fake = self.discriminator([segmentation_map, fake_images])[-1]
+            pred_real = self.discriminator([segmentation_map, real_image])[-1]
+            loss_fake = self.discriminator_loss(pred_fake, False)
+            loss_real = self.discriminator_loss(pred_real, True)
+            total_loss = 0.5 * (loss_fake + loss_real)
 
-    def _compute_discriminator_loss(
-        self, real_images, segmentation_maps, generated_images
-    ):
-        fake_prediction = self.discriminator([generated_images, segmentation_maps])[-1]
-        real_prediction = self.discriminator([real_images, segmentation_maps])[-1]
-        fake_loss = self.discriminator_hinge_loss(-1.0, fake_prediction)
-        real_loss = self.discriminator_hinge_loss(1.0, real_prediction)
-        total_discriminator_loss = 0.5 * (fake_loss + real_loss)
-        return total_discriminator_loss
-
-    def _compute_generator_loss(
-        self,
-        latent,
-        real_images,
-        segmentation_maps,
-        segmentation_labels,
-        mean,
-        variance,
-    ):
-        real_d_output = self.discriminator([real_images, segmentation_maps])
-        fake_images = self.generator([latent, segmentation_labels])
-        fake_d_output = self.discriminator([fake_images, segmentation_maps])
-        g_loss = self.discriminator_hinge_loss(1.0, fake_d_output[-1])
-        kl_loss = kl_divergence_loss(mean, variance)
-        content_loss = self.content_loss(real_images, fake_images)
-        feature_loss = self.feature_matching_loss(real_d_output, fake_d_output)
-        total_generator_loss = (
-            g_loss
-            + self.kl_divergence_weight * kl_loss
-            + self.content_loss_weight * content_loss
-            + self.feature_loss_weight * feature_loss
+        self.discriminator.trainable = True
+        gradients = gradient_tape.gradient(
+            total_loss, self.discriminator.trainable_variables
         )
-        return g_loss, kl_loss, content_loss, feature_loss, total_generator_loss
-
-    def _discriminator_train_step(
-        self, latent, real_images, segmentation_maps, segmentation_labels
-    ):
-        generated_images = self.generator([latent, segmentation_labels])
-        with tf.GradientTape() as d_tape:
-            total_loss = self._compute_discriminator_loss(
-                real_images, segmentation_maps, generated_images
-            )
-        gradients = d_tape.gradient(total_loss, self.discriminator.trainable_variables)
         self.discriminator_optimizer.apply_gradients(
             zip(gradients, self.discriminator.trainable_variables)
         )
         return total_loss
 
-    def _generator_train_step(
-        self,
-        latent,
-        real_images,
-        segmentation_maps,
-        segmentation_labels,
-        mean,
-        variance,
+    def train_generator(
+        self, latent_vector, segmentation_map, labels, image, mean, variance
     ):
-        with tf.GradientTape() as g_tape:
-            (
-                g_loss,
-                kl_loss,
-                content_loss,
-                feature_loss,
-                total_generator_loss,
-            ) = self._compute_generator_loss(
-                latent,
-                real_images,
-                segmentation_maps,
-                segmentation_labels,
-                mean,
-                variance,
+        # Generator learns through the signal provided by the discriminator. During
+        # backpropagation, we only update the generator parameters.
+        self.discriminator.trainable = False
+        with tf.GradientTape() as tape:
+            real_d_output = self.discriminator([segmentation_map, image])
+            fake_d_output, fake_image = self.combined_model(
+                [latent_vector, labels, segmentation_map]
             )
-        trainable_variables = self.generator.trainable_variables
-        if self.train_encoder:
-            trainable_variables += self.encoder.trainable_variables
-        gradients = g_tape.gradient(total_generator_loss, trainable_variables)
-        self.generator_optimizer.apply_gradients(zip(gradients, trainable_variables))
-        return g_loss, kl_loss, content_loss, feature_loss
+            pred = fake_d_output[-1]
+
+            # Compute generator losses.
+            g_loss = generator_loss(pred)
+            kl_loss = self.kl_divergence_loss_coeff * kl_divergence_loss(mean, variance)
+            vgg_loss = self.vgg_feature_loss_coeff * self.vgg_loss(image, fake_image)
+            feature_loss = self.feature_loss_coeff * self.feature_matching_loss(
+                real_d_output, fake_d_output
+            )
+            total_loss = g_loss + kl_loss + vgg_loss + feature_loss
+
+        gradients = tape.gradient(total_loss, self.combined_model.trainable_variables)
+        self.generator_optimizer.apply_gradients(
+            zip(gradients, self.combined_model.trainable_variables)
+        )
+        return total_loss, feature_loss, vgg_loss, kl_loss
 
     def train_step(self, data):
-        real_images, segmentation_maps, segmentation_labels = data
-        mean, variance = self.encoder(segmentation_maps)
-        latent_input = self.sampler([mean, variance])
-        discriminator_loss = self._discriminator_train_step(
-            latent_input, real_images, segmentation_maps, segmentation_labels
+        segmentation_map, image, labels = data
+        mean, variance = self.encoder(image)
+        latent_vector = self.sampler([mean, variance])
+        discriminator_loss = self.train_discriminator(
+            latent_vector, segmentation_map, image, labels
         )
-        g_loss, kl_loss, content_loss, feature_loss = self._generator_train_step(
-            latent_input,
-            real_images,
-            segmentation_maps,
-            segmentation_labels,
-            mean,
-            variance,
+        (generator_loss, feature_loss, vgg_loss, kl_loss) = self.train_generator(
+            latent_vector, segmentation_map, labels, image, mean, variance
         )
-        return {
-            "discriminator_loss": discriminator_loss,
-            "generator_loss": g_loss,
-            "kl_divergence_loss": kl_loss,
-            "content_loss": content_loss,
-            "feature_loss": feature_loss,
-        }
+
+        # Report progress.
+        self.disc_loss_tracker.update_state(discriminator_loss)
+        self.gen_loss_tracker.update_state(generator_loss)
+        self.feat_loss_tracker.update_state(feature_loss)
+        self.vgg_loss_tracker.update_state(vgg_loss)
+        self.kl_loss_tracker.update_state(kl_loss)
+        results = {m.name: m.result() for m in self.metrics}
+        return results
 
     def test_step(self, data):
-        real_images, segmentation_maps, segmentation_labels = data
-        mean, variance = self.encoder(segmentation_maps)
-        latent_input = self.sampler([mean, variance])
-        generated_images = self.generator([latent_input, segmentation_labels])
-        discriminator_loss = self._compute_discriminator_loss(
-            real_images, segmentation_maps, generated_images
-        )
-        (
-            g_loss,
-            kl_loss,
-            content_loss,
-            feature_loss,
-            total_generator_loss,
-        ) = self._compute_generator_loss(
-            latent_input,
-            real_images,
-            segmentation_maps,
-            segmentation_labels,
-            mean,
-            variance,
-        )
-        return {
-            "discriminator_loss": discriminator_loss,
-            "generator_loss": total_generator_loss,
-            "kl_divergence_loss": kl_loss,
-            "content_loss": content_loss,
-            "feature_loss": feature_loss,
-        }
+        segmentation_map, image, labels = data
+        # Obtain the learned moments of the real image distribution.
+        mean, variance = self.encoder(image)
 
-    def call(self, inputs, training=None, mask=None):
-        segmentation_maps, segmentation_labels = inputs[0], inputs[1]
-        mean, variance = self.encoder(segmentation_maps)
-        latent_input = self.sampler([mean, variance])
-        generated_images = self.generator([latent_input, segmentation_labels])
-        return generated_images
+        # Sample a latent from the distribution defined by the learned moments.
+        latent_vector = self.sampler([mean, variance])
+
+        # Generate the fake images,
+        fake_images = self.generator([latent_vector, labels])
+
+        # Calculate the losses.
+        pred_fake = self.discriminator([segmentation_map, fake_images])[-1]
+        pred_real = self.discriminator([segmentation_map, image])[-1]
+        loss_fake = self.discriminator_loss(pred_fake, False)
+        loss_real = self.discriminator_loss(pred_real, True)
+        total_discriminator_loss = 0.5 * (loss_fake + loss_real)
+        real_d_output = self.discriminator([segmentation_map, image])
+        fake_d_output, fake_image = self.combined_model(
+            [latent_vector, labels, segmentation_map]
+        )
+        pred = fake_d_output[-1]
+        g_loss = generator_loss(pred)
+        kl_loss = self.kl_divergence_loss_coeff * kl_divergence_loss(mean, variance)
+        vgg_loss = self.vgg_feature_loss_coeff * self.vgg_loss(image, fake_image)
+        feature_loss = self.feature_loss_coeff * self.feature_matching_loss(
+            real_d_output, fake_d_output
+        )
+        total_generator_loss = g_loss + kl_loss + vgg_loss + feature_loss
+
+        # Report progress.
+        self.disc_loss_tracker.update_state(total_discriminator_loss)
+        self.gen_loss_tracker.update_state(total_generator_loss)
+        self.feat_loss_tracker.update_state(feature_loss)
+        self.vgg_loss_tracker.update_state(vgg_loss)
+        self.kl_loss_tracker.update_state(kl_loss)
+        results = {m.name: m.result() for m in self.metrics}
+        return results
+
+    def call(self, inputs):
+        latent_vectors, labels = inputs
+        return self.generator([latent_vectors, labels])
 
     def save(
         self,
-        filepath,
+        generator_filepath: str,
+        discriminator_filepath: str,
         overwrite=True,
         include_optimizer=True,
         save_format=None,
@@ -232,7 +222,7 @@ class GauGAN(Model):
         save_traces=True,
     ):
         self.generator.save(
-            filepath + "_generator",
+            generator_filepath,
             overwrite=overwrite,
             include_optimizer=include_optimizer,
             save_format=save_format,
@@ -241,7 +231,7 @@ class GauGAN(Model):
             save_traces=save_traces,
         )
         self.discriminator.save(
-            filepath + "_discriminator",
+            discriminator_filepath,
             overwrite=overwrite,
             include_optimizer=include_optimizer,
             save_format=save_format,
@@ -250,15 +240,26 @@ class GauGAN(Model):
             save_traces=save_traces,
         )
 
-    def save_weights(self, filepath, overwrite=True, save_format=None, options=None):
+    def load(self, generator_filepath: str, discriminator_filepath: str):
+        self.generator = models.load_model(generator_filepath)
+        self.discriminator = models.load_model(discriminator_filepath)
+
+    def save_weights(
+        self,
+        generator_filepath,
+        discriminator_filepath,
+        overwrite=True,
+        save_format=None,
+        options=None,
+    ):
         self.generator.save_weights(
-            filepath + "_generator.h5",
+            generator_filepath,
             overwrite=overwrite,
             save_format=save_format,
             options=options,
         )
         self.discriminator.save_weights(
-            filepath + "_discriminator.h5",
+            discriminator_filepath,
             overwrite=overwrite,
             save_format=save_format,
             options=options,
@@ -282,26 +283,5 @@ class GauGAN(Model):
             discriminator_filepath,
             by_name=by_name,
             skip_mismatch=skip_mismatch,
-            options=options,
-        )
-
-    def load(
-        self,
-        generator_filepath,
-        discriminator_filepath,
-        custom_objects=None,
-        compile=True,
-        options=None,
-    ):
-        self.generator = models.load_model(
-            filepath=generator_filepath,
-            custom_objects=custom_objects,
-            compile=compile,
-            options=options,
-        )
-        self.discriminator = models.load_model(
-            filepath=discriminator_filepath,
-            custom_objects=custom_objects,
-            compile=compile,
             options=options,
         )

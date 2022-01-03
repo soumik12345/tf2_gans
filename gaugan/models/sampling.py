@@ -2,22 +2,16 @@ import tensorflow as tf
 from tensorflow.keras import layers
 
 
-class GaussianSampling(layers.Layer):
-    """Gaussian Sampler Layer
-
-    Args:
-        batch_size (int): batch size
-        latent_dimension (int): latent_dimension
-    """
-
-    def __init__(self, batch_size: int, latent_dimension: int):
-        super(GaussianSampling, self).__init__()
+class GaussianSampler(layers.Layer):
+    def __init__(self, batch_size, latent_dim, **kwargs):
+        super().__init__(**kwargs)
         self.batch_size = batch_size
-        self.latent_dimension = latent_dimension
+        self.latent_dim = latent_dim
 
     def call(self, inputs):
-        means, logvar = inputs
+        means, variance = inputs
         epsilon = tf.random.normal(
-            shape=(self.batch_size, self.latent_dimension), mean=0.0, stddev=1.0
+            shape=(self.batch_size, self.latent_dim), mean=0.0, stddev=1.0
         )
-        return means + tf.exp(0.5 * logvar) * epsilon
+        samples = means + tf.exp(0.5 * variance) * epsilon
+        return samples

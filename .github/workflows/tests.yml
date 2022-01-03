@@ -5,7 +5,7 @@ on:
       - .github/**
       - gaugan/**
       - tests.py
-      - requirements.txt
+      - requirements.docker
 jobs:
   run-tests:
     runs-on: ubuntu-latest
@@ -14,8 +14,8 @@ jobs:
       - uses: actions/checkout@v2
       - run: |
           pip install -U pip
-          pip install -r requirements.txt
-          apt-get install unzip
-          gdown https://drive.google.com/uc?id=1zs2RPZkLeB5QDRVQtpqUtMwepR_Qfufp
-          unzip -q facades.zip
+          pip install -r requirements.docker
+          apt-get install unzip wget
+          wget https://github.com/soumik12345/tf2_gans/releases/download/v0.1/facades_data_subset.zip
+          unzip -q facades_data_subset.zip
           pytest tests.py -s
