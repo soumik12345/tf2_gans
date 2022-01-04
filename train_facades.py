@@ -3,6 +3,9 @@ from absl import app
 from absl import flags
 from absl import logging
 
+from wandb.keras import WandbCallback
+import wandb
+
 from ml_collections.config_flags import config_flags
 
 from gaugan.dataloader import FacadesDataLoader
@@ -15,6 +18,13 @@ config_flags.DEFINE_config_file("facades_configs")
 
 
 def main(_):
+    if FLAGS.facades_configs.wandb_project:
+        wandb.login()
+        wandb.init(
+            project=FLAGS.facades_configs.wandb_project,
+            config=FLAGS.facades_configs.to_dict(),
+        )
+
     logging.info("Building TensorFlow Datasets...")
     data_loader = FacadesDataLoader(
         target_image_height=FLAGS.facades_configs.image_height,
@@ -51,7 +61,8 @@ def main(_):
         val_dataset,
         FLAGS.facades_configs.batch_size,
         epoch_interval=FLAGS.facades_configs.epoch_interval,
-        plot_save_dir=FLAGS.facades_configs.plot_save_dir,
+        use_wandb=True if FLAGS.facades_configs.wandb_project else False,
+        plot_save_dir=None,  # Change `FLAGS.facades_configs.plot_save_dir` to control this.
     )
     logging.info("Done!!!")
 
@@ -60,7 +71,7 @@ def main(_):
         train_dataset,
         validation_data=val_dataset,
         epochs=FLAGS.facades_configs.hyperparameters.epochs,
-        callbacks=[gan_monitor_callback],
+        callbacks=[gan_monitor_callback, WandbCallback()],
     )
     logging.info("Training completed successfully!!!")
 

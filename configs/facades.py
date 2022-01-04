@@ -19,4 +19,6 @@ def get_config() -> ml_collections.ConfigDict:
     config.plot_save_dir = "checkpoints/plots"
     config.model_save_dir = "checkpoint/models"
 
+    config.wandb_project = "GauGAN" # Setting this to None won't log anything to `wandb`.
+
     return config
