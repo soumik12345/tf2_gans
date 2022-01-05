@@ -61,7 +61,7 @@ class GauGAN(Model):
         self.feat_loss_tracker = tf.keras.metrics.Mean(name="feat_loss")
         self.vgg_loss_tracker = tf.keras.metrics.Mean(name="vgg_loss")
         self.kl_loss_tracker = tf.keras.metrics.Mean(name="kl_loss")
-        self.kid = KID()
+        self.kid = KID(image_size)
 
     @property
     def metrics(self):
