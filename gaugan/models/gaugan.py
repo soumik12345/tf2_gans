@@ -1,3 +1,4 @@
+import os
 import ml_collections
 import tensorflow as tf
 from tensorflow.keras import Input, Model
@@ -12,6 +13,7 @@ from ..losses import (
     FeatureMatchingLoss,
     VGGFeatureMatchingLoss,
 )
+from ..metrics import KID
 
 
 class GauGAN(Model):
@@ -59,6 +61,7 @@ class GauGAN(Model):
         self.feat_loss_tracker = tf.keras.metrics.Mean(name="feat_loss")
         self.vgg_loss_tracker = tf.keras.metrics.Mean(name="vgg_loss")
         self.kl_loss_tracker = tf.keras.metrics.Mean(name="kl_loss")
+        self.kid = KID()
 
     @property
     def metrics(self):
@@ -68,6 +71,7 @@ class GauGAN(Model):
             self.feat_loss_tracker,
             self.vgg_loss_tracker,
             self.kl_loss_tracker,
+            self.kid,
         ]
 
     def build_combined_generator(self):
@@ -198,6 +202,7 @@ class GauGAN(Model):
         total_generator_loss = g_loss + kl_loss + vgg_loss + feature_loss
 
         # Report progress.
+        self.kid.update_state(image, fake_images)
         self.disc_loss_tracker.update_state(total_discriminator_loss)
         self.gen_loss_tracker.update_state(total_generator_loss)
         self.feat_loss_tracker.update_state(feature_loss)
@@ -212,8 +217,7 @@ class GauGAN(Model):
 
     def save(
         self,
-        generator_filepath: str,
-        discriminator_filepath: str,
+        filepath,
         overwrite=True,
         include_optimizer=True,
         save_format=None,
@@ -222,7 +226,7 @@ class GauGAN(Model):
         save_traces=True,
     ):
         self.generator.save(
-            generator_filepath,
+            os.path.join(filepath, "generator"),
             overwrite=overwrite,
             include_optimizer=include_optimizer,
             save_format=save_format,
@@ -231,7 +235,7 @@ class GauGAN(Model):
             save_traces=save_traces,
         )
         self.discriminator.save(
-            discriminator_filepath,
+            os.path.join(filepath, "discriminator"),
             overwrite=overwrite,
             include_optimizer=include_optimizer,
             save_format=save_format,
@@ -244,43 +248,29 @@ class GauGAN(Model):
         self.generator = models.load_model(generator_filepath)
         self.discriminator = models.load_model(discriminator_filepath)
 
-    def save_weights(
-        self,
-        generator_filepath,
-        discriminator_filepath,
-        overwrite=True,
-        save_format=None,
-        options=None,
-    ):
+    def save_weights(self, filepath, overwrite=True, save_format=None, options=None):
         self.generator.save_weights(
-            generator_filepath,
+            os.path.join(filepath, "generator-checkpoints"),
             overwrite=overwrite,
             save_format=save_format,
             options=options,
         )
         self.discriminator.save_weights(
-            discriminator_filepath,
+            os.path.join(filepath, "discriminator-checkpoints"),
             overwrite=overwrite,
             save_format=save_format,
             options=options,
         )
 
-    def load_weights(
-        self,
-        generator_filepath,
-        discriminator_filepath,
-        by_name=False,
-        skip_mismatch=False,
-        options=None,
-    ):
+    def load_weights(self, filepath, by_name=False, skip_mismatch=False, options=None):
         self.generator.load_weights(
-            generator_filepath,
+            os.path.join(filepath, "generator-checkpoints"),
             by_name=by_name,
             skip_mismatch=skip_mismatch,
             options=options,
         )
         self.discriminator.load_weights(
-            discriminator_filepath,
+            os.path.join(filepath, "discriminator-checkpoints"),
             by_name=by_name,
             skip_mismatch=skip_mismatch,
             options=options,

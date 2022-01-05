@@ -1,4 +1,5 @@
 import os
+import datetime
 from absl import app
 from absl import flags
 from absl import logging
@@ -7,6 +8,7 @@ from wandb.keras import WandbCallback
 import wandb
 
 from ml_collections.config_flags import config_flags
+from tensorflow import keras
 
 from gaugan.dataloader import FacadesDataLoader
 from gaugan.models import GauGAN
@@ -64,6 +66,13 @@ def main(_):
         use_wandb=True if FLAGS.facades_configs.wandb_project else False,
         plot_save_dir=None,  # Change `FLAGS.facades_configs.plot_save_dir` to control this.
     )
+    checkpoint_callback = keras.callbacks.ModelCheckpoint(
+        FLAGS.facades_configs.model_save_dir,
+        monitor="val_kid",
+        save_best_only=True,
+        save_weights_only=True,
+        mode="max",
+    )
     logging.info("Done!!!")
 
     logging.info("Training GauGAN on Facades Dataset...")
@@ -71,16 +80,17 @@ def main(_):
         train_dataset,
         validation_data=val_dataset,
         epochs=FLAGS.facades_configs.hyperparameters.epochs,
-        callbacks=[gan_monitor_callback, WandbCallback()],
+        callbacks=[gan_monitor_callback, WandbCallback(), checkpoint_callback],
     )
     logging.info("Training completed successfully!!!")
 
+    logging.info("Load the best generator and discriminator checkpoints...")
+    gaugan_model.load_weights(FLAGS.facades_configs.model_save_dir)
+
     logging.info(f"Saving models at {FLAGS.facades_configs.model_save_dir}")
-    if not os.path.isdir(FLAGS.facades_configs.model_save_dir):
-        os.makedirs(FLAGS.facades_configs.model_save_dir)
+    timestamp = datetime.datetime.utcnow().strftime("%y%m%d-%H%M%S")
     gaugan_model.save(
-        os.path.join(FLAGS.facades_configs.model_save_dir, "generator"),
-        os.path.join(FLAGS.facades_configs.model_save_dir, "discriminator"),
+        os.path.join(FLAGS.facades_configs.model_save_dir, timestamp),
     )
     logging.info("Done!!!")
 
