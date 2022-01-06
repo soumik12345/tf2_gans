@@ -75,7 +75,7 @@ def main(_):
     )
     callbacks = [gan_monitor_callback, checkpoint_callback]
     if FLAGS.facades_configs.wandb_project:
-        callbacks.extend(WandbCallback())
+        callbacks.append(WandbCallback())
 
     logging.info("Done!!!")
 
