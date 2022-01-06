@@ -20,11 +20,14 @@ class KID(keras.metrics.Metric):
         # a pretrained InceptionV3 is used without its classification layer
         # transform the pixel values to the 0-255 range, then use the same
         # preprocessing as during pretraining
+        resizing = lambda x: tf.image.resize(
+            x, (self.kid_image_size, self.kid_image_size)
+        )
         self.encoder = keras.Sequential(
             [
                 layers.InputLayer(input_shape=(self.image_size, self.image_size, 3)),
                 layers.Lambda(lambda x: 127.5 * (x + 1)),
-                layers.Resizing(height=self.kid_image_size, width=self.kid_image_size),
+                layers.Lambda(resizing),
                 layers.Lambda(keras.applications.inception_v3.preprocess_input),
                 keras.applications.InceptionV3(
                     include_top=False,
