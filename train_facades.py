@@ -23,6 +23,7 @@ def main(_):
         wandb.login()
         wandb.init(
             project=FLAGS.facades_configs.wandb_project,
+            name=FLAGS.facades_configs.wandb_experiment_name,
             config=FLAGS.facades_configs.to_dict(),
         )
 

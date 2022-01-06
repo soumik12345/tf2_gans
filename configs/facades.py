@@ -19,6 +19,7 @@ def get_config() -> ml_collections.ConfigDict:
     config.plot_save_dir = "checkpoints/plots"
     config.model_save_dir = "checkpoints/models"
 
-    config.wandb_project = None
+    config.wandb_project = "GauGAN"
+    config.wandb_experiment_name = "facades"
 
     return config
