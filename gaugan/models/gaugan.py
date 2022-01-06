@@ -168,7 +168,7 @@ class GauGAN(Model):
         self.feat_loss_tracker.update_state(feature_loss)
         self.vgg_loss_tracker.update_state(vgg_loss)
         self.kl_loss_tracker.update_state(kl_loss)
-        results = {m.name: m.result() for m in self.metrics}
+        results = {m.name: m.result() for m in self.metrics[:-1]}
         return results
 
     def test_step(self, data):
