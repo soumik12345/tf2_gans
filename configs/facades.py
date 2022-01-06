@@ -17,6 +17,8 @@ def get_config() -> ml_collections.ConfigDict:
 
     config.epoch_interval = 5
     config.plot_save_dir = "checkpoints/plots"
-    config.model_save_dir = "checkpoint/models"
+    config.model_save_dir = "checkpoints/models"
+
+    config.wandb_project = None
 
     return config

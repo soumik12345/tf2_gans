@@ -10,6 +10,8 @@ $ pip install -r requirements.txt
 
 ## Training GauGAN with [Facades](https://cmp.felk.cvut.cz/~tylecr1/facade/) dataset
 
+Blog post: [GauGAN for conditional image generation](https://keras.io/examples/generative/gaugan/)
+
 ```shell
 $ gdown https://drive.google.com/uc?id=1q4FEjQg1YSb4mPx2VdxL7LXKYu3voTMj
 $ unzip -q facades_data.zip
