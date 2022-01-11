@@ -22,7 +22,7 @@ class GanMonitor(callbacks.Callback):
         self.plot_save_dir = plot_save_dir
         self.use_wandb = use_wandb
         self.wandb_table = wandb.Table(
-            columns=["Epoch", "#", "Semantic Mask", "Ground Truth", "Generated Image"]
+            columns=["Epoch", "Semantic Mask", "Ground Truth", "Generated Image"]
         )
 
         if self.plot_save_dir:
@@ -57,8 +57,7 @@ class GanMonitor(callbacks.Callback):
                         axarr[i, j].axis("off")
                         axarr[i, j].set_title("Generated Image", fontsize=20)
                     self.wandb_table.add_data(
-                        epoch,
-                        j,
+                        epoch + 1,
                         wandb.Image((self.val_images[0][i] + 1) / 2),
                         wandb.Image((self.val_images[1][i] + 1) / 2),
                         wandb.Image((generated_images[i] + 1) / 2),
