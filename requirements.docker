@@ -1,0 +1,9 @@
+black==21.10b0
+gdown==4.2.0
+jupyter==1.0.0
+matplotlib==3.4.3
+pytest==6.2.5
+tensorflow-addons==0.15.0
+tqdm==4.62.3
+wandb== 0.12.4
+ml_collections==0.1.0
