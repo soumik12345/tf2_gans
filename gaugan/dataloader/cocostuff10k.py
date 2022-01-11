@@ -98,7 +98,7 @@ class CocoStuff10KDataLoader:
             (self.target_image_height, self.target_image_width),
         )
         image = tf.image.resize(
-            image, self.target_image_height, self.target_image_width
+            image, (self.target_image_height, self.target_image_width)
         )
 
         labels = tf.identity(segmentation_map)
