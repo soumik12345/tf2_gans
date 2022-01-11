@@ -21,4 +21,4 @@ $ python train_facades.py --facades_configs ./configs/facades.py
 You can find the pre-trained checkpoints [here](https://github.com/soumik12345/tf2_gans/releases/tag/v0.2) and
 the [training logs on Weights and Biases](https://wandb.ai/tf2_gans/GauGAN/runs/1vvw7cpw). You are also welcome to
 checkout [this inference notebook](https://github.com/soumik12345/tf2_gans/blob/gaugan/notebooks/gaugan_facades_inference.ipynb) (runnable
-on Colab) to play with this model. 
+on Colab) to play with the model. 
