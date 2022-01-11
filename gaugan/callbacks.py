@@ -22,7 +22,7 @@ class GanMonitor(callbacks.Callback):
         self.plot_save_dir = plot_save_dir
         self.use_wandb = use_wandb
         self.wandb_table = wandb.Table(
-            columns=["Epoch", "Semantic Mask", "Ground Truth", "Generated Image"]
+            columns=["Semantic Mask", "Ground Truth", "Generated Image"]
         )
 
         if self.plot_save_dir:
@@ -57,7 +57,6 @@ class GanMonitor(callbacks.Callback):
                         axarr[i, j].axis("off")
                         axarr[i, j].set_title("Generated Image", fontsize=20)
                     self.wandb_table.add_data(
-                        epoch + 1,
                         wandb.Image((self.val_images[0][i] + 1) / 2),
                         wandb.Image((self.val_images[1][i] + 1) / 2),
                         wandb.Image((generated_images[i] + 1) / 2),
@@ -66,7 +65,7 @@ class GanMonitor(callbacks.Callback):
             if (self.plot_save_dir is None) and (not self.use_wandb):
                 plt.show()
             elif self.use_wandb:
-                wandb.log({f"validation_images_{epoch}": fig})
-                wandb.log({"GANMonitor": self.wandb_table})
+                wandb.log({f"validation_images_{epoch + 1}": fig})
+                wandb.log({f"GANMonitor Epoch {epoch + 1}": self.wandb_table})
             elif self.plot_save_dir:
                 fig.savefig(os.path.join(self.plot_save_dir, f"{epoch}.png"))
