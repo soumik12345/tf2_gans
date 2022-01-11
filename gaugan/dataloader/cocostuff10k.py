@@ -68,7 +68,7 @@ class CocoStuff10KDataLoader:
 
     def random_crop(self, segmentation_map: tf.Tensor, image: tf.Tensor):
         crop_size = tf.convert_to_tensor(
-            self.target_image_height, self.target_image_width
+            (self.target_image_height, self.target_image_width)
         )
 
         image_shape = tf.shape(image)[:2]
