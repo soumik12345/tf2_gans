@@ -39,11 +39,11 @@ class GanMonitor(callbacks.Callback):
             generated_images = self.infer()
 
             grid_row = min(generated_images.shape[0], 3)
-            fig, axarr = plt.subplots(4, 3, figsize=(18, grid_row * 6))
+            fig, axarr = plt.subplots(self.n_samples, 3, figsize=(18, grid_row * 6))
 
-            for i in range(4):
+            for i in range(self.n_samples):
                 for j in range(3):
-                    # ax = axarr if grid_row == 1 else axarr[row]
+                # ax = axarr if grid_row == 1 else axarr[row]
                     if j == 0:
                         axarr[i, j].imshow((self.val_images[0][i] + 1) / 2)
                         axarr[i, j].axis("off")
@@ -56,11 +56,11 @@ class GanMonitor(callbacks.Callback):
                         axarr[i, j].imshow((generated_images[i] + 1) / 2)
                         axarr[i, j].axis("off")
                         axarr[i, j].set_title("Generated Image", fontsize=20)
-                    self.wandb_table.add_data(
-                        wandb.Image((self.val_images[0][i] + 1) / 2),
-                        wandb.Image((self.val_images[1][i] + 1) / 2),
-                        wandb.Image((generated_images[i] + 1) / 2),
-                    )
+                self.wandb_table.add_data(
+                    wandb.Image((self.val_images[0][i] + 1) / 2),
+                    wandb.Image((self.val_images[1][i] + 1) / 2),
+                    wandb.Image((generated_images[i] + 1) / 2),
+                )
 
             if (self.plot_save_dir is None) and (not self.use_wandb):
                 plt.show()
