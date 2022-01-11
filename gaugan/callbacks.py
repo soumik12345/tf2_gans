@@ -14,13 +14,16 @@ class GanMonitor(callbacks.Callback):
         n_samples: int,
         epoch_interval: int,
         use_wandb: bool,
-        plot_save_dir,
+        plot_save_dir: str,
     ):
         self.val_images = next(iter(val_dataset))
         self.n_samples = n_samples
         self.epoch_interval = epoch_interval
-        self.use_wandb = use_wandb
         self.plot_save_dir = plot_save_dir
+        self.use_wandb = use_wandb
+        self.wandb_table = wandb.Table(
+            columns=["Epoch", "#", "Semantic Mask", "Ground Truth", "Generated Image"]
+        )
 
         if self.plot_save_dir:
             logging.info(f"Intermediate images will be serialized to: {plot_save_dir}.")
@@ -53,10 +56,18 @@ class GanMonitor(callbacks.Callback):
                         axarr[i, j].imshow((generated_images[i] + 1) / 2)
                         axarr[i, j].axis("off")
                         axarr[i, j].set_title("Generated Image", fontsize=20)
+                    self.wandb_table.add_data(
+                        epoch,
+                        j,
+                        wandb.Image((self.val_images[0][i] + 1) / 2),
+                        wandb.Image((self.val_images[1][i] + 1) / 2),
+                        wandb.Image((generated_images[i] + 1) / 2),
+                    )
 
             if (self.plot_save_dir is None) and (not self.use_wandb):
                 plt.show()
             elif self.use_wandb:
                 wandb.log({f"validation_images_{epoch}": fig})
+                wandb.log({"GANMonitor": self.wandb_table})
             elif self.plot_save_dir:
                 fig.savefig(os.path.join(self.plot_save_dir, f"{epoch}.png"))
