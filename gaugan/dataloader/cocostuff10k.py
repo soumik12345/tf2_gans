@@ -127,7 +127,7 @@ class CocoStuff10KDataLoader:
         annotation_ds = annotation_ds.map(
             lambda x: tf.numpy_function(self.load_annotation, [x], tf.float32),
             num_parallel_calls=_AUTO,
-        ).cache()
+        )
 
         dataset = tf.data.Dataset.zip((annotation_ds, image_ds))
         dataset = dataset.shuffle(batch_size * 10) if train else dataset
