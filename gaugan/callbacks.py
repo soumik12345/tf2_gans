@@ -65,8 +65,6 @@ class GanMonitor(callbacks.Callback):
                 )
                 if (self.plot_save_dir is None) and (not self.use_wandb):
                     plt.show()
-                elif self.use_wandb:
-                    wandb.log({f"validation_images_{epoch + 1}_{i}": fig})
                 elif self.plot_save_dir:
                     fig.savefig(os.path.join(self.plot_save_dir, f"{epoch}_{i}.png"))
 
