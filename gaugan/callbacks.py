@@ -74,7 +74,7 @@ class CheckpointArtifactCallback(callbacks.Callback):
         super().__init__()
         self.model_name = model_name
         self.wandb_run = wandb_run
-        self.artifact = wandb.Artifact(name=experiment_name, typr="model")
+        self.artifact = wandb.Artifact(name=experiment_name, type="model")
 
     def on_epoch_end(self, epoch, logs=None):
         self.model.save(self.model_name)
