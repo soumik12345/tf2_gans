@@ -132,3 +132,7 @@ dmypy.json
 **.zip
 facades/
 facades_data/
+
+# project specific
+test.py
+checkpoints

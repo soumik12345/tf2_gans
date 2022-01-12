@@ -47,14 +47,14 @@ class GanMonitor(callbacks.Callback):
 
             for i in range(4):
                 fig = plot_results(
-                    [semantic_input, ground_truth, generated_images],
+                    [semantic_input[i], ground_truth[i], generated_images[i]],
                     ["Semantic Input", "Ground Truth", "Generated Image"],
                     figure_size=(18, 18),
                 )
                 wandb_table.add_data(
-                    wandb.Image(semantic_input),
-                    wandb.Image(ground_truth),
-                    wandb.Image(generated_images)
+                    wandb.Image(semantic_input[i]),
+                    wandb.Image(ground_truth[i]),
+                    wandb.Image(generated_images[i])
                 )
                 if (self.plot_save_dir is None) and (not self.use_wandb):
                     plt.show()
@@ -63,35 +63,3 @@ class GanMonitor(callbacks.Callback):
                     wandb.log({f"GANMonitor Epoch {epoch + 1}": wandb_table})
                 elif self.plot_save_dir:
                     fig.savefig(os.path.join(self.plot_save_dir, f"{epoch}_{i}.png"))
-
-            # grid_row = min(generated_images.shape[0], 3)
-            # fig, axarr = plt.subplots(self.n_samples, 3, figsize=(18, grid_row * 6))
-
-            # for i in range(self.n_samples):
-            #     for j in range(3):
-            #     # ax = axarr if grid_row == 1 else axarr[row]
-            #         if j == 0:
-            #             axarr[i, j].imshow((self.val_images[0][i] + 1) / 2)
-            #             axarr[i, j].axis("off")
-            #             axarr[i, j].set_title("Mask", fontsize=20)
-            #         if j == 1:
-            #             axarr[i, j].imshow((self.val_images[1][i] + 1) / 2)
-            #             axarr[i, j].axis("off")
-            #             axarr[i, j].set_title("Reference Image", fontsize=20)
-            #         if j == 2:
-            #             axarr[i, j].imshow((generated_images[i] + 1) / 2)
-            #             axarr[i, j].axis("off")
-            #             axarr[i, j].set_title("Generated Image", fontsize=20)
-            #     self.wandb_table.add_data(
-            #         wandb.Image((self.val_images[0][i] + 1) / 2),
-            #         wandb.Image((self.val_images[1][i] + 1) / 2),
-            #         wandb.Image((generated_images[i] + 1) / 2),
-            #     )
-
-            # if (self.plot_save_dir is None) and (not self.use_wandb):
-            #     plt.show()
-            # elif self.use_wandb:
-            #     wandb.log({f"validation_images_{epoch + 1}": fig})
-            #     wandb.log({f"GANMonitor Epoch {epoch + 1}": self.wandb_table})
-            # elif self.plot_save_dir:
-            #     fig.savefig(os.path.join(self.plot_save_dir, f"{epoch}.png"))
