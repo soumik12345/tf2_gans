@@ -69,3 +69,16 @@ class GanMonitor(callbacks.Callback):
                     wandb.log({f"validation_images_{epoch + 1}_{i}": fig})
                 elif self.plot_save_dir:
                     fig.savefig(os.path.join(self.plot_save_dir, f"{epoch}_{i}.png"))
+
+
+class CheckpointArtifactCallback(callbacks.Callback):
+    def __init__(self, experiment_name: str, model_name: str, wandb_run):
+        super().__init__()
+        self.model_name = model_name
+        self.wandb_run = wandb_run
+        self.artifact = wandb.Artifact(name=experiment_name, typr="model")
+
+    def on_epoch_end(self, epoch, logs=None):
+        self.model.save(self.model_name)
+        self.artifact.add_dir(self.model_name)
+        self.wandb_run.log_artifact(self.artifact)
