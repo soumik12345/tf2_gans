@@ -23,7 +23,8 @@ class GanMonitor(callbacks.Callback):
         self.epoch_interval = epoch_interval
         self.plot_save_dir = plot_save_dir
         self.use_wandb = use_wandb
-        
+        self.columns = ["Semantic Mask", "Ground Truth", "Generated Image"]
+
         if self.plot_save_dir:
             logging.info(f"Intermediate images will be serialized to: {plot_save_dir}.")
 
@@ -33,6 +34,16 @@ class GanMonitor(callbacks.Callback):
         )
         return self.model.predict([latent_vector, self.val_images[2]])
 
+    def log_to_tables(self, epoch, semantic_input, ground_truth, generated_images):
+        wandb_table = wandb.Table(columns=self.columns)
+        for i in range(4):
+            wandb_table.add_data(
+                wandb.Image(semantic_input[i]),
+                wandb.Image(ground_truth[i]),
+                wandb.Image(generated_images[i]),
+            )
+        wandb.log({f"GANMonitor Epoch {epoch}": wandb_table})
+
     def on_epoch_end(self, epoch, logs=None):
         if epoch == 0 or (epoch + 1) % self.epoch_interval == 0:
             generated_images = self.infer()
@@ -41,20 +52,16 @@ class GanMonitor(callbacks.Callback):
             ground_truth = (self.val_images[1] + 1) / 2
             generated_images = (generated_images + 1) / 2
 
-            wandb_table = wandb.Table(
-                columns=["Semantic Mask", "Ground Truth", "Generated Image"]
-            )
+            if self.use_wandb:
+                self.log_to_tables(
+                    epoch + 1, semantic_input, ground_truth, generated_images
+                )
 
             for i in range(4):
                 fig = plot_results(
                     [semantic_input[i], ground_truth[i], generated_images[i]],
-                    ["Semantic Input", "Ground Truth", "Generated Image"],
+                    self.columns,
                     figure_size=(18, 18),
-                )
-                wandb_table.add_data(
-                    wandb.Image(semantic_input[i]),
-                    wandb.Image(ground_truth[i]),
-                    wandb.Image(generated_images[i])
                 )
                 if (self.plot_save_dir is None) and (not self.use_wandb):
                     plt.show()
@@ -62,6 +69,3 @@ class GanMonitor(callbacks.Callback):
                     wandb.log({f"validation_images_{epoch + 1}_{i}": fig})
                 elif self.plot_save_dir:
                     fig.savefig(os.path.join(self.plot_save_dir, f"{epoch}_{i}.png"))
-            
-            if self.use_wandb:
-                wandb.log({f"GANMonitor Epoch {epoch + 1}": wandb_table})
