@@ -60,6 +60,8 @@ class GanMonitor(callbacks.Callback):
                     plt.show()
                 elif self.use_wandb:
                     wandb.log({f"validation_images_{epoch + 1}_{i}": fig})
-                    wandb.log({f"GANMonitor Epoch {epoch + 1}": wandb_table})
                 elif self.plot_save_dir:
                     fig.savefig(os.path.join(self.plot_save_dir, f"{epoch}_{i}.png"))
+            
+            if self.use_wandb:
+                wandb.log({f"GANMonitor Epoch {epoch + 1}": wandb_table})
