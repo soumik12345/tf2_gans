@@ -132,3 +132,4 @@ dmypy.json
 **.zip
 facades/
 facades_data/
+cocostuff10k_small
