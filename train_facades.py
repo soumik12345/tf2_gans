@@ -12,16 +12,17 @@ from tensorflow import keras
 
 from gaugan.dataloader import FacadesDataLoader
 from gaugan.models import GauGAN
-from gaugan.callbacks import GanMonitor
+from gaugan.callbacks import GanMonitor, CheckpointArtifactCallback
 
 FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file("facades_configs")
 
 
 def main(_):
+    wandb_run = None
     if FLAGS.facades_configs.wandb_project:
         wandb.login()
-        wandb.init(
+        wandb_run = wandb.init(
             project=FLAGS.facades_configs.wandb_project,
             name=FLAGS.facades_configs.wandb_experiment_name,
             config=FLAGS.facades_configs.to_dict(),
@@ -74,9 +75,17 @@ def main(_):
         save_weights_only=True,
         mode="max",
     )
+
     callbacks = [gan_monitor_callback, checkpoint_callback]
     if FLAGS.facades_configs.wandb_project:
-        callbacks.append(WandbCallback())
+        callbacks.append(WandbCallback(save_model=True))
+        callbacks.append(
+            CheckpointArtifactCallback(
+                experiment_name=FLAGS.facades_configs.wandb_experiment_name,
+                model_name=FLAGS.facades_configs.model_save_dir,
+                wandb_run=wandb_run,
+            )
+        )
 
     logging.info("Done!!!")
 
