@@ -17,6 +17,7 @@ class GanMonitor(callbacks.Callback):
         epoch_interval: int,
         use_wandb: bool,
         plot_save_dir: str,
+        num_images_plot: int = 4,
     ):
         self.val_images = next(iter(val_dataset))
         self.n_samples = n_samples
@@ -27,6 +28,7 @@ class GanMonitor(callbacks.Callback):
 
         if self.plot_save_dir:
             logging.info(f"Intermediate images will be serialized to: {plot_save_dir}.")
+        self.num_images_plot = num_images_plot
 
     def infer(self):
         latent_vector = tf.random.normal(
@@ -36,7 +38,7 @@ class GanMonitor(callbacks.Callback):
 
     def log_to_tables(self, epoch, semantic_input, ground_truth, generated_images):
         wandb_table = wandb.Table(columns=self.columns)
-        for i in range(4):
+        for i in range(self.num_images_plot):
             wandb_table.add_data(
                 wandb.Image(semantic_input[i]),
                 wandb.Image(ground_truth[i]),
@@ -57,7 +59,7 @@ class GanMonitor(callbacks.Callback):
                     epoch + 1, semantic_input, ground_truth, generated_images
                 )
 
-            for i in range(4):
+            for i in range(self.num_images_plot):
                 fig = plot_results(
                     [semantic_input[i], ground_truth[i], generated_images[i]],
                     self.columns,
