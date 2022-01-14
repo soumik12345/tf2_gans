@@ -128,11 +128,13 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Dataset Directories
+# dataset directories
 **.zip
 facades/
 facades_data/
+cocostuff10k_small/
 
 # project specific
 test.py
-checkpoints
+checkpoints/
+

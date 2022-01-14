@@ -1,9 +1,11 @@
+import os
 import unittest
+from glob import glob
 import tensorflow as tf
 
 from configs import hyperparameters
 
-from gaugan.dataloader import FacadesDataLoader
+from gaugan.dataloader import FacadesDataLoader, CocoStuff10KDataLoader
 from gaugan.models import build_encoder, build_generator, build_discriminator, GauGAN
 
 
@@ -24,6 +26,30 @@ class FacadesDataLoaderTester(unittest.TestCase):
         assert segmentation_map.shape == (1, 256, 256, 3)
         assert image.shape == (1, 256, 256, 3)
         assert labels.shape == (1, 256, 256, 12)
+
+
+class CocoStuff10KDataLoaderTester(unittest.TestCase):
+    def __init__(self, methodName: str = ...) -> None:
+        super().__init__(methodName)
+        self.data_loader = CocoStuff10KDataLoader(data_dir="cocostuff10k_small")
+
+    def test_datasets(self) -> None:
+        images = glob(os.path.join(self.data_loader.data_dir, "images/*"))
+        annotations = glob(os.path.join(self.data_loader.data_dir, "annotations/*"))
+        train_dataset = self.data_loader.prepare_dataset(
+            images, annotations, batch_size=1
+        )
+        test_dataset = self.data_loader.prepare_dataset(
+            images, annotations, batch_size=1, train=False
+        )
+        segmentation_map, image, labels = next(iter(train_dataset))
+        assert segmentation_map.shape == (1, 256, 256)
+        assert image.shape == (1, 256, 256, 3)
+        assert labels.shape == (1, 256, 256, 172)
+        segmentation_map, image, labels = next(iter(test_dataset))
+        assert segmentation_map.shape == (1, 256, 256)
+        assert image.shape == (1, 256, 256, 3)
+        assert labels.shape == (1, 256, 256, 172)
 
 
 class ModelTester(unittest.TestCase):
