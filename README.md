@@ -23,7 +23,7 @@ the [training logs on Weights and Biases](https://wandb.ai/tf2_gans/GauGAN/runs/
 checkout [this inference notebook](https://github.com/soumik12345/tf2_gans/blob/gaugan/notebooks/gaugan_facades_inference.ipynb) (runnable
 on Colab) to play with the model. 
 
-## Training GauGAN with [Coco-Stuff 10k](https://github.com/nightrome/cocostuff10k)
+## [WIP] Training GauGAN with [Coco-Stuff 10k](https://github.com/nightrome/cocostuff10k)
 
 ```shell
 $ wget -q http://calvin.inf.ed.ac.uk/wp-content/uploads/data/cocostuffdataset/cocostuff-10k-v1.1.zip
