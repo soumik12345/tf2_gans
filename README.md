@@ -30,3 +30,7 @@ $ wget -q http://calvin.inf.ed.ac.uk/wp-content/uploads/data/cocostuffdataset/co
 $ unzip -q cocostuff-10k-v1.1.zip -d cocostuff10k_data
 $ python train_cocostuff10k.py --cocostuff10k_configs ./configs/cocostuff10k.py
 ```
+
+## Acknowledgements
+
+* [ML-GDE](https://developers.google.com/programs/experts/) program that provided GCP credits for the execution of the experiments. 
