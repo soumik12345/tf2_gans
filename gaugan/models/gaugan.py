@@ -1,6 +1,6 @@
 """References:
-- https://github.com/PacktPublishing/Hands-On-Image-Generation-with-TensorFlow-2.0/blob/master/Chapter06/ch6_gaugan.ipynb
-- https://www.packtpub.com/product/hands-on-image-generation-with-tensorflow/9781838826789
+- [Hands-On Image Generation with TensorFlow](https://www.packtpub.com/product/hands-on-image-generation-with-tensorflow/9781838826789)
+- [Implementing SPADE using fastai](https://towardsdatascience.com/implementing-spade-using-fastai-6ad86b94030a)
 - 
 """
 
