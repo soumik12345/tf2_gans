@@ -103,9 +103,7 @@ def main(_):
 
     logging.info(f"Saving models at {FLAGS.facades_configs.model_save_dir}")
     timestamp = datetime.datetime.utcnow().strftime("%y%m%d-%H%M%S")
-    gaugan_model.save(
-        os.path.join(FLAGS.facades_configs.model_save_dir, timestamp),
-    )
+    gaugan_model.save(os.path.join(FLAGS.facades_configs.model_save_dir, timestamp),)
     logging.info("Done!!!")
 
 
