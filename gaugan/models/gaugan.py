@@ -1,3 +1,9 @@
+"""References:
+- https://github.com/PacktPublishing/Hands-On-Image-Generation-with-TensorFlow-2.0/blob/master/Chapter06/ch6_gaugan.ipynb
+- https://www.packtpub.com/product/hands-on-image-generation-with-tensorflow/9781838826789
+"""
+
+
 import os
 import ml_collections
 import tensorflow as tf
