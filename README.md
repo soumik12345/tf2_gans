@@ -33,4 +33,8 @@ $ python train_cocostuff10k.py --cocostuff10k_configs ./configs/cocostuff10k.py
 
 ## Acknowledgements
 
+* [Keras Implementation of GauGAN](https://github.com/PacktPublishing/Hands-On-Image-Generation-with-TensorFlow-2.0/blob/master/Chapter06/ch6_gaugan.ipynb)
+
+* [FastAI Implementation of GauGAN](https://towardsdatascience.com/implementing-spade-using-fastai-6ad86b94030a)
+
 * [ML-GDE](https://developers.google.com/programs/experts/) program that provided GCP credits for the execution of the experiments. 

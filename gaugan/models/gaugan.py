@@ -1,6 +1,7 @@
 """References:
 - https://github.com/PacktPublishing/Hands-On-Image-Generation-with-TensorFlow-2.0/blob/master/Chapter06/ch6_gaugan.ipynb
 - https://www.packtpub.com/product/hands-on-image-generation-with-tensorflow/9781838826789
+- 
 """
 
 
@@ -153,7 +154,7 @@ class GauGAN(Model):
 
         gradients = tape.gradient(total_loss, self.combined_model.trainable_variables)
         self.generator_optimizer.apply_gradients(
-            zip(gradients, self.combined_model.trainable_variables)
+            zip(gradients, self.combined_model.trainable_variables + self.encoder.trainable_variables)
         )
         return total_loss, feature_loss, vgg_loss, kl_loss
 
