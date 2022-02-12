@@ -1,6 +1,7 @@
 """References:
-- https://github.com/PacktPublishing/Hands-On-Image-Generation-with-TensorFlow-2.0/blob/master/Chapter06/ch6_gaugan.ipynb
-- https://www.packtpub.com/product/hands-on-image-generation-with-tensorflow/9781838826789
+- [Hands-On Image Generation with TensorFlow](https://www.packtpub.com/product/hands-on-image-generation-with-tensorflow/9781838826789)
+- [Implementing SPADE using fastai](https://towardsdatascience.com/implementing-spade-using-fastai-6ad86b94030a)
+- 
 """
 
 
@@ -151,9 +152,13 @@ class GauGAN(Model):
             )
             total_loss = g_loss + kl_loss + vgg_loss + feature_loss
 
-        gradients = tape.gradient(total_loss, self.combined_model.trainable_variables)
+        all_trainable_variables = (
+            self.combined_model.trainable_variables + self.encoder.trainable_variables
+        )
+
+        gradients = tape.gradient(total_loss, all_trainable_variables,)
         self.generator_optimizer.apply_gradients(
-            zip(gradients, self.combined_model.trainable_variables)
+            zip(gradients, all_trainable_variables,)
         )
         return total_loss, feature_loss, vgg_loss, kl_loss
 
